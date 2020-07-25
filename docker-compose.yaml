@@ -1,0 +1,30 @@
+version: '3'
+
+services:
+  bot:
+    build:
+      context: ./bot
+      args:
+        - PORT=${WEB_PORT}
+    container_name: bot
+    environment:
+      - TOKEN
+      - VIRTUAL_HOST=bot.aaaw.ooo
+      - VIRTUAL_PORT=${WEB_PORT}
+      - LETSENCRYPT_HOST=bot.aaaw.ooo
+      - LETSENCRYPT_EMAIL=hexidave@gmail.com
+    restart: always
+
+  site:
+    build:
+      context: ./site
+    container_name: site
+    environment:
+      - VIRTUAL_HOST=aaaw.ooo
+      - LETSENCRYPT_HOST=aaaw.ooo
+      - LETSENCRYPT_EMAIL=hexidave@gmail.com
+    restart: always
+networks:
+  default:
+    external:
+      name: nginx-proxy
