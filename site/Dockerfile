@@ -1,5 +1,8 @@
 FROM node:12 AS builder
 
+WORKDIR /common
+COPY ../common .
+
 WORKDIR /app
 ENV PATH /app/node_modules/.bin:$PATH
 

@@ -4,6 +4,9 @@
 #
 FROM node:12 AS builder
 
+WORKDIR /usr/src/common
+COPY ../common .
+
 WORKDIR /usr/src/app
 
 COPY package*.json tsconfig*.json yarn.lock ./
@@ -35,4 +38,4 @@ USER node
 
 EXPOSE ${PORT}
 
-CMD ["pm2-runtime", "./build/server.js"]
+CMD ["pm2-runtime", "./build/boot.js"]

@@ -1,0 +1,16 @@
+{
+	"compilerOptions": {
+		"target": "es5",
+		"module": "es2015",
+		"sourceMap": true,
+		"declaration": true,
+		"composite": true,
+		"rootDir": ".",
+		"lib": [
+			"esnext"
+		]
+	},
+	"exclude": [
+		"node_modules"
+	]
+}
