@@ -1,3 +1,5 @@
 export interface HandshakeQuery {
-	inviteToken: string
+	inviteCode?: string
+	refreshCode?: string
+	requestedSeat?: number
 }

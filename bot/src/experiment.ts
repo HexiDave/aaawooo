@@ -1,5 +1,3 @@
-import { Timer, TimerEventSymbol } from './Timer'
-import { Snowflake } from 'discord.js'
 import SocketIOClient from 'socket.io-client'
 import {
 	Card,
@@ -8,10 +6,13 @@ import {
 	GameEvent,
 	GamePhase,
 	getGameEventName,
-	HandshakeQuery, UserDetails
+	HandshakeQuery,
+	UserDetails
 } from '../../common'
-import { GameServerManager, HandshakeQueryDetails } from './GameServerManager'
+import { GameServerManager } from './GameServerManager'
 import { sign } from './jwt'
+import { werewolfRole } from './werewolf/roles/werewolf'
+import { GameServer } from './werewolf/GameServer'
 
 const cardCounts: CardCountState = {
 	...DefaultCardCountState,
@@ -22,42 +23,8 @@ const cardCounts: CardCountState = {
 	insomniac: 1,
 }
 
-function doRoleEvent(name: string, delay: number) {
-	console.log(`Doing role event [${name}], then a delay of ${delay}ms`)
-	return delay
-}
-
-function* roleEventGenerator(): Generator<number, void, void> {
-	yield doRoleEvent('Start event', 2000)
-	yield doRoleEvent('Event 1', 1000)
-	yield doRoleEvent('Event 2', 500)
-	yield doRoleEvent('Final event', 0)
-
-	return
-}
-
-export function runBasicExperiment() {
-	const timer = new Timer()
-
-	const iter = roleEventGenerator()
-	timer.on(TimerEventSymbol, () => {
-		const current = iter.next()
-
-		if (current.done === false) {
-			timer.start(current.value)
-		} else {
-			console.log('Done')
-		}
-	})
-
-	const current = iter.next()
-	if (current.done === false) {
-		timer.start(current.value)
-	}
-}
-
 const delay = (delay: number) => new Promise<void>(res => setTimeout(res, delay))
-
+/*
 export async function gameServerExperiment(gameServerManager: GameServerManager, secret: string, port: number) {
 	const userDetailsList: UserDetails[] = [
 		'Player 1',
@@ -71,6 +38,13 @@ export async function gameServerExperiment(gameServerManager: GameServerManager,
 	console.log('Setting up users...')
 
 	const gameServer = gameServerManager.createGameServer()
+	gameServer
+		.on(GameServer.PlayTrackSymbol, (trackName: string) => {
+			console.log(`Playing track on server: ${trackName}`)
+		})
+		.on(GameServer.StopTrackSymbol, (trackName: string) => {
+			console.log(`Stopping track on server: ${trackName}`)
+		})
 
 	await delay(2000)
 
@@ -106,8 +80,14 @@ export async function gameServerExperiment(gameServerManager: GameServerManager,
 	}
 
 	gameServer.startSetup()
+
+	await delay(1000)
 	gameServer.tempInitCardCountState(cardCounts)
 
-	await delay(3000)
-	gameServer.startGame()
+	await delay(1000)
+	gameServer.tempStartSequence(werewolfRole(gameServer))
+
+	// await delay(3000)
+	// gameServer.startGame()
 }
+*/

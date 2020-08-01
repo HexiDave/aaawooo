@@ -1,5 +1,4 @@
 import cloneDeep from 'lodash/cloneDeep'
-import { v4 } from 'uuid'
 import {
 	buildDeckFromCardCountState,
 	Card,
@@ -20,32 +19,69 @@ import {
 } from '../../../common'
 import Player from './Player'
 import { Namespace, Server, Socket } from 'socket.io'
+import { RoleEventGenerator } from './RoleEventFuncType'
+import { EventEmitter } from 'events'
+import { VoiceConnection } from 'discord.js'
+import Timer from '../../../common/Timer'
 
-export class GameServer {
+export class GameServer extends EventEmitter {
+	public static readonly PauseEventSymbol = Symbol()
+
+	public static readonly ResumeEventSymbol = Symbol()
+
+	public static readonly PlayTrackSymbol = Symbol()
+
+	public static readonly StopTrackSymbol = Symbol()
+
 	public readonly gameState: GameState
 
-	public readonly roomId = v4()
+	public readonly roomId: string
+
+	private timer: Timer
 
 	private players: Player[]
 
 	private server: Namespace
 
-	public get deck() {
-		return this.gameState.deck
-	}
+	private generator: RoleEventGenerator | null
 
-	public constructor(server: Server) {
+	private currentTrackName: string
+
+	private voiceConnection: VoiceConnection
+
+	public constructor(roomId: string, server: Server, voiceConnection: VoiceConnection) {
+		super()
 		this.gameState = cloneDeep(DefaultGameState)
+		this.roomId = roomId
 		this.players = []
 		this.server = server.in(this.roomId)
+		this.voiceConnection = voiceConnection
+
+		this.setupVoiceConnection()
+
+		this.timer = new Timer(this.onTimer)
 	}
 
-	private emit(gameEvent: GameEvent, ...args: any[]) {
+	private setupVoiceConnection() {
+		const {voiceConnection} = this
+
+		voiceConnection
+			.on('error', console.error)
+			.on('closing', () => console.log('Closing voice connection'))
+			.on('disconnect', () => console.log('Disconnect called on voice connection'))
+			.on('reconnecting', () => console.log('Attempting to re-connect voice'))
+	}
+
+	private sendGameEvent(gameEvent: GameEvent, ...args: any[]) {
 		this.server.emit(getGameEventName(gameEvent), ...args)
 	}
 
+	private static socketEmit(socket: Socket | null, gameEvent: GameEvent, ...args: any[]) {
+		socket?.emit(getGameEventName(gameEvent), ...args)
+	}
+
 	private static playerEmit(player: Player, gameEvent: GameEvent, ...args: any[]) {
-		player.socket?.emit(getGameEventName(gameEvent), ...args)
+		GameServer.socketEmit(player.socket, gameEvent, ...args)
 	}
 
 	private static addEventToPlayerHistory(player: Player, event: PlayerEvent) {
@@ -76,17 +112,28 @@ export class GameServer {
 
 		socket.join(this.roomId)
 
-		// TODO: Attach event listeners
+		socket.on(getGameEventName(GameEvent.PlayerReady), () => {
+			GameServer.socketEmit(socket, GameEvent.UpdatePlayers, this.getUserDetails())
+			this.sendGameStateToSocket(socket)
+		})
+
+		socket.on(getGameEventName(GameEvent.UpdateCardCount), (card: Card, count: number) => {
+			this.updateCardCount(card, count)
+		})
 	}
 
 	private updateGamePhase(phase: GamePhase) {
 		this.gameState.phase = phase
-		this.emit(GameEvent.PhaseChange, phase)
+		this.sendGameEvent(GameEvent.PhaseChange, phase)
 	}
 
 	private updateNightRole(role: NightRoleOrderType) {
 		this.gameState.nightRole = role
-		this.emit(GameEvent.AnnounceNightRole, role)
+		this.sendGameEvent(GameEvent.AnnounceNightRole, role)
+	}
+
+	private sendGameStateToSocket(socket: Socket) {
+		GameServer.socketEmit(socket, GameEvent.UpdateGameState, this.gameState)
 	}
 
 	public initializePlayers(userDetailsList: UserDetails[]) {
@@ -100,6 +147,12 @@ export class GameServer {
 			history: [],
 			userDetails: userDetails
 		}))
+
+		this.startSetup()
+	}
+
+	public getUserDetailsById(userId: string) {
+		return this.players.find(p => p.userDetails?.id === userId)?.userDetails
 	}
 
 	public joinPlayer(socket: Socket, userDetails: UserDetails, requestedPosition?: number) {
@@ -140,9 +193,15 @@ export class GameServer {
 
 		this.setupPlayerSocket(player)
 
-		const playersState = this.players.map(p => p.userDetails)
+		this.sendPlayerStateToAll()
+	}
 
-		this.emit(GameEvent.UpdatePlayers, playersState)
+	private getUserDetails() {
+		return this.players.map(p => p.userDetails)
+	}
+
+	private sendPlayerStateToAll() {
+		this.sendGameEvent(GameEvent.UpdatePlayers, this.getUserDetails())
 	}
 
 	public startSetup() {
@@ -154,6 +213,11 @@ export class GameServer {
 
 	public tempInitCardCountState(cardCountState: CardCountState) {
 		this.gameState.cardCountState = cardCountState
+	}
+
+	public tempStartSequence(gen: RoleEventGenerator) {
+		this.generator = gen
+		this.generator.next()
 	}
 
 	public startGame() {
@@ -200,7 +264,7 @@ export class GameServer {
 
 		// Send if different
 		if (originalCount !== updatedCount) {
-			this.emit(GameEvent.UpdateCardCount, card, count)
+			this.sendGameEvent(GameEvent.UpdateCardCount, card, count)
 		}
 	}
 
@@ -224,6 +288,81 @@ export class GameServer {
 			this.updateGamePhase(GamePhase.Day)
 		} else {
 			this.updateNightRole(nextNightRole)
+		}
+	}
+
+	public getPlayerCard(playerIndex: number) {
+		if (playerIndex >= this.players.length || playerIndex < 0)
+			throw new Error(`Invalid player index: ${playerIndex}`)
+
+		return this.gameState.deck[playerIndex]
+	}
+
+	public getMiddleCardRealIndex(middleCardIndex: number) {
+		if (middleCardIndex >= 3 || middleCardIndex < 0)
+			throw new Error(`Invalid middle card index: ${middleCardIndex}`)
+
+		return this.players.length + middleCardIndex
+	}
+
+	public getMiddleCard(middleCardIndex: number) {
+		return this.gameState.deck[this.getMiddleCardRealIndex(middleCardIndex)]
+	}
+
+	public pause() {
+		this.timer.pause()
+		this.emit(GameServer.PauseEventSymbol)
+	}
+
+	public resume() {
+		this.timer.resume()
+		this.emit(GameServer.ResumeEventSymbol)
+	}
+
+	public playTrack(trackName: string) {
+		this.currentTrackName = trackName
+		this.emit(GameServer.PlayTrackSymbol, trackName)
+	}
+
+	public stopTrack() {
+		if (this.currentTrackName !== null) {
+			this.emit(GameServer.StopTrackSymbol, this.currentTrackName)
+			this.currentTrackName = null
+		}
+	}
+
+	public activateNextSequence() {
+		console.log('Moving to next sequence')
+	}
+
+	public onTrackFinished = (trackName: string) => {
+		if (trackName !== this.currentTrackName)
+			return
+
+		if (this.currentTrackName !== null) {
+			console.log(`Track finished: ${this.currentTrackName}`)
+			this.currentTrackName = null
+		}
+
+		this.timer.pause()
+
+		this.onTimer()
+	}
+
+	public onTimer = () => {
+		this.stopTrack()
+
+		if (this.generator === null) {
+			this.activateNextSequence()
+			return
+		}
+
+		const current = this.generator.next()
+
+		if (current.done === false) {
+			this.timer.start(current.value)
+		} else {
+			this.activateNextSequence()
 		}
 	}
 }

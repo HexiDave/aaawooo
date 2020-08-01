@@ -7,9 +7,9 @@ const {
 const path = require("path")
 
 module.exports = override(
-	babelInclude(
+	removeModuleScopePlugin(),
+	babelInclude([
 		path.resolve('src'),
 		path.resolve('../common')
-	),
-	removeModuleScopePlugin()
+	])
 )

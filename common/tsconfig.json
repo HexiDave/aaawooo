@@ -7,7 +7,8 @@
 		"composite": true,
 		"rootDir": ".",
 		"lib": [
-			"esnext"
+			"esnext",
+			"DOM"
 		]
 	},
 	"exclude": [

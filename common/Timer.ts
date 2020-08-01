@@ -1,14 +1,13 @@
-import { EventEmitter } from 'events'
+type TimerCallback = () => void
 
-export const TimerEventSymbol = Symbol()
-
-export class Timer extends EventEmitter {
+export default class Timer {
 	private startTime: number
 	private remainingTime: number
-	private timerId: NodeJS.Timer
+	private timerId: number
+	private readonly callback: TimerCallback
 
-	private notify = () => {
-		this.emit(TimerEventSymbol)
+	constructor(callback: TimerCallback) {
+		this.callback = callback
 	}
 
 	public start(delay: number) {
@@ -19,7 +18,7 @@ export class Timer extends EventEmitter {
 	public resume() {
 		clearTimeout(this.timerId)
 		this.startTime = Date.now()
-		this.timerId = setTimeout(this.notify, this.remainingTime)
+		this.timerId = setTimeout(this.callback, this.remainingTime)
 	}
 
 	public pause() {
