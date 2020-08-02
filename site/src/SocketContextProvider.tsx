@@ -40,6 +40,13 @@ export default function SocketContextProvider({children}: PropsWithChildren<{}>)
 			console.log('Connected')
 		})
 
+		socket.on('reconnect_attempt', () => {
+			const refreshCode = localStorage.getItem(WEREWOLF_REFRESH_CODE_KEY)
+			socket.io.opts.query = {
+				refreshCode
+			} as HandshakeQuery
+		})
+
 		socket.on('message', (msg: string) => {
 			console.log('Got message', msg)
 		})

@@ -8,16 +8,12 @@ interface WebServerResults {
 	io: SocketIO.Server
 }
 
-export function createWebServer(port: number): WebServerResults {
+export function createWebServer(): WebServerResults {
 	const app = express()
 	const server = http.createServer(app)
 
 	const io = SocketIO(server, {
 		origins: '*:*'
-	})
-
-	server.listen(port, () => {
-		console.log('Listening on port', port)
 	})
 
 	server.on('error', console.error)

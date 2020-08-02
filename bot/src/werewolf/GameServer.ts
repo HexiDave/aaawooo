@@ -17,12 +17,14 @@ import {
 	updateCardCount,
 	UserDetails
 } from '../../../common'
-import Player from './Player'
+import Player, { BasePlayer } from './Player'
 import { Namespace, Server, Socket } from 'socket.io'
 import { RoleEventGenerator } from './RoleEventFuncType'
 import { EventEmitter } from 'events'
 import { VoiceConnection } from 'discord.js'
 import Timer from '../../../common/Timer'
+import RedisWrapper from '../RedisWrapper'
+import { GameServerState } from './GameServerState'
 
 export class GameServer extends EventEmitter {
 	public static readonly PauseEventSymbol = Symbol()
@@ -49,17 +51,45 @@ export class GameServer extends EventEmitter {
 
 	private voiceConnection: VoiceConnection
 
-	public constructor(roomId: string, server: Server, voiceConnection: VoiceConnection) {
+	private redis: RedisWrapper<GameServerState>
+
+	public get isStarted() {
+		return this.gameState.phase > GamePhase.Setup
+	}
+
+	public constructor(roomId: string, server: Server, voiceConnection: VoiceConnection, redis: RedisWrapper<GameServerState>) {
 		super()
 		this.gameState = cloneDeep(DefaultGameState)
 		this.roomId = roomId
 		this.players = []
 		this.server = server.in(this.roomId)
 		this.voiceConnection = voiceConnection
+		this.redis = redis
 
 		this.setupVoiceConnection()
 
 		this.timer = new Timer(this.onTimer)
+	}
+
+	public getGameServerState(): GameServerState {
+		const players: BasePlayer[] = this.players.map(({history, startingCard, userDetails}) => ({
+			userDetails,
+			startingCard,
+			history
+		}))
+
+		return {
+			players,
+			gameState: this.gameState
+		}
+	}
+
+	public tearDown() {
+		// Ignore promise
+		this.redis.delete(this.roomId).then()
+		this.removeAllListeners()
+		this.removeAllPlayers()
+		this.voiceConnection.disconnect()
 	}
 
 	private setupVoiceConnection() {
@@ -151,6 +181,25 @@ export class GameServer extends EventEmitter {
 		this.startSetup()
 	}
 
+	public initializeWithGameServerState(gameServerState: GameServerState) {
+		this.removeAllPlayers()
+
+		const {gameState: {cardCountState, deck, loneWolfEnabled, nightRole, phase}, players} = gameServerState
+
+		this.players = players.map(player => ({
+			socket: null,
+			...player
+		}))
+
+		const localGameState = this.gameState
+
+		localGameState.loneWolfEnabled = loneWolfEnabled
+		localGameState.phase = phase
+		localGameState.nightRole = nightRole
+		localGameState.deck = deck
+		localGameState.cardCountState = cardCountState
+	}
+
 	public getUserDetailsById(userId: string) {
 		return this.players.find(p => p.userDetails?.id === userId)?.userDetails
 	}
@@ -204,11 +253,20 @@ export class GameServer extends EventEmitter {
 		this.sendGameEvent(GameEvent.UpdatePlayers, this.getUserDetails())
 	}
 
+	private storeGameServerState() {
+		this.redis.set(this.roomId, this.getGameServerState())
+			.then(() => console.log('Stored state'))
+			.catch(console.error)
+	}
+
 	public startSetup() {
 		if (this.gameState.phase !== GamePhase.None)
 			return
 
 		this.updateGamePhase(GamePhase.Setup)
+
+		// Ignore promise
+		this.storeGameServerState()
 	}
 
 	public tempInitCardCountState(cardCountState: CardCountState) {
@@ -253,6 +311,8 @@ export class GameServer extends EventEmitter {
 		}
 
 		this.updateGamePhase(GamePhase.Night)
+
+		this.storeGameServerState()
 	}
 
 	public updateCardCount(card: Card, count: number) {
@@ -265,6 +325,7 @@ export class GameServer extends EventEmitter {
 		// Send if different
 		if (originalCount !== updatedCount) {
 			this.sendGameEvent(GameEvent.UpdateCardCount, card, count)
+			this.storeGameServerState()
 		}
 	}
 

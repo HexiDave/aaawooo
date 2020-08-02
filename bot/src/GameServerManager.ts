@@ -1,8 +1,11 @@
-import { GameServer } from './werewolf/GameServer'
+import { GameServer} from './werewolf/GameServer'
 import { Server } from 'socket.io'
-import { CommonMessage, getCommonMessageName, HandshakeQuery } from '../../common'
-import { VoiceConnection } from 'discord.js'
+import { CommonMessage, GameState, getCommonMessageName, HandshakeQuery } from '../../common'
+import { VoiceConnection, Client, VoiceChannel } from 'discord.js'
 import { v4 } from 'uuid'
+import { Redis } from 'ioredis'
+import RedisWrapper, { ExpireMode } from './RedisWrapper'
+import { GameServerState } from './werewolf/GameServerState'
 
 const MAX_INVITE_NUMBER = 999_999
 const DEFAULT_INVITE_CODE_LENGTH = MAX_INVITE_NUMBER.toString().length
@@ -17,14 +20,49 @@ export class GameServerManager {
 
 	private readonly inviteCodeMap = new Map<string, UserRoomDetails>()
 
-	private readonly refreshCodeMap = new Map<string, UserRoomDetails>()
-
 	private readonly io: Server
 
-	public constructor(io: Server) {
+	private readonly redis: Redis
+
+	private readonly refreshCodeCache: RedisWrapper<UserRoomDetails>
+
+	public constructor(io: Server, redis: Redis) {
 		this.io = io
+		this.redis = redis
+
+		this.refreshCodeCache = new RedisWrapper<UserRoomDetails>(redis, 'refresh:')
 
 		this.setupHandlers()
+	}
+
+	private createGameServerCache() {
+		return new RedisWrapper<GameServerState>(this.redis, 'gameServer:')
+	}
+
+	public async loadGameServers(discordClient: Client) {
+		const gameServerCache = this.createGameServerCache()
+
+		const roomIds = await gameServerCache.getKeys()
+
+		for (let roomId of roomIds) {
+			try {
+				const channel = await discordClient.channels.fetch(roomId) as VoiceChannel
+
+				if (!channel) {
+					console.error('No channel found!')
+					continue
+				}
+
+				const voiceConnection = await channel.join()
+				const gameServerState = await gameServerCache.get(roomId)
+
+				const gameServer = this.createGameServer(roomId, voiceConnection)
+				gameServer.initializeWithGameServerState(gameServerState)
+				console.debug('Loaded room', roomId)
+			} catch (e) {
+				console.error('Unable to re-join channel', roomId, e)
+			}
+		}
 	}
 
 	private setupHandlers() {
@@ -39,7 +77,8 @@ export class GameServerManager {
 				if (inviteCode) {
 					userRoomDetails = this.inviteCodeMap.get(inviteCode)
 				} else if (refreshCode) {
-					userRoomDetails = this.refreshCodeMap.get(refreshCode)
+					userRoomDetails = await this.refreshCodeCache.get(refreshCode)
+					console.log('Refresh code', refreshCode, userRoomDetails)
 				}
 
 				if (!userRoomDetails) {
@@ -64,12 +103,12 @@ export class GameServerManager {
 				if (inviteCode) {
 					this.inviteCodeMap.delete(inviteCode)
 				} else if (refreshCode) {
-					this.refreshCodeMap.delete(refreshCode)
+					await this.refreshCodeCache.delete(refreshCode)
 				}
 
 				// Send the user a refresh code, in case they get disconnected
 				const nextRefreshCode = v4()
-				this.refreshCodeMap.set(nextRefreshCode, userRoomDetails)
+				await this.refreshCodeCache.setWithExpiration(nextRefreshCode, userRoomDetails, 60 * 60 * 24)
 				socket.emit(getCommonMessageName(CommonMessage.RefreshCode), nextRefreshCode)
 			} catch (e) {
 				console.error('Failed to handshake', e)
@@ -86,7 +125,7 @@ export class GameServerManager {
 	}
 
 	public createGameServer(roomId: string, voiceConnection: VoiceConnection) {
-		const gameServer = new GameServer(roomId, this.io, voiceConnection)
+		const gameServer = new GameServer(roomId, this.io, voiceConnection, this.createGameServerCache())
 		this.gameServers.set(gameServer.roomId, gameServer)
 
 		return gameServer
@@ -94,8 +133,7 @@ export class GameServerManager {
 
 	public destroyGameServer(gameServer: GameServer) {
 		this.gameServers.delete(gameServer.roomId)
-		gameServer.removeAllListeners()
-		gameServer.removeAllPlayers()
+		gameServer.tearDown()
 	}
 
 	public generateInviteCode(userRoomDetails: UserRoomDetails) {

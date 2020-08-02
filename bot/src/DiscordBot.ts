@@ -1,10 +1,8 @@
 import Discord, { Collection, Message, TextChannel } from 'discord.js'
 import { GameServerManager } from './GameServerManager'
-import { UserDetails } from '../../common'
+import { MAX_ROOM_SIZE, UserDetails } from '../../common'
 
 export type CommandFunc = (message: Message, ...args: any[]) => Promise<void>
-
-const MAX_ROOM_SIZE = 20
 
 export default class DiscordBot {
 	public readonly gameServerManager: GameServerManager
@@ -165,6 +163,14 @@ export default class DiscordBot {
 
 			return
 		}
+
+		if (gameServer.isStarted) {
+			await message.channel.send("Sorry, the game has already started!")
+
+			return
+		}
+
+		// TODO: Check player counts and such
 
 		const inviteCode = this.gameServerManager.generateInviteCode({
 			userId: message.author.id,

@@ -1,6 +1,7 @@
 import { createWebServer } from './webServer'
 import { GameServerManager } from './GameServerManager'
 import DiscordBot from './DiscordBot'
+import Redis from 'ioredis'
 
 const SERVER_PORT = parseInt(process.env.PORT || process.env.WEB_PORT, 10) || 5000
 
@@ -13,15 +14,22 @@ if (process.env.NODE_ENV !== 'production') {
 }
 
 async function boot() {
-	const {app, io, server} = createWebServer(SERVER_PORT)
 
-	const gameServerManager = new GameServerManager(io)
+	const redis = new Redis(process.env.REDIS_ADDRESS)
+
+	const {app, io, server} = createWebServer()
+
+	const gameServerManager = new GameServerManager(io, redis)
 
 	const discordBot = new DiscordBot(gameServerManager)
 
-	// await gameServerExperiment(gameServerManager, TEMP_SECRET, SERVER_PORT)
-
 	await discordBot.initializeClient()
+
+	await gameServerManager.loadGameServers(discordBot.client)
+
+	server.listen(SERVER_PORT, () => {
+		console.log('Listening on port', SERVER_PORT)
+	})
 }
 
 boot().then().catch(console.error)
