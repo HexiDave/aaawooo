@@ -1,8 +1,9 @@
+import fs from 'fs'
+import path from 'path'
 import cloneDeep from 'lodash/cloneDeep'
 import {
 	buildDeckFromCardCountState,
 	Card,
-	CardCountState,
 	DefaultGameState,
 	GameEvent,
 	GamePhase,
@@ -10,34 +11,30 @@ import {
 	getGameEventName,
 	getNextNightRole,
 	isDeckValid,
-	NightRoleOrderType,
+	NightRoleOrderType, NightRoleOrderTypeOrNull,
 	PlayerEvent,
 	PlayerEventType,
 	prepareDeckForGame,
+	Timer,
 	updateCardCount,
 	UserDetails
 } from '../../../common'
-import Player, { BasePlayer } from './Player'
+import Player, { BasePlayer, PlayerWithIndex } from './Player'
 import { Namespace, Server, Socket } from 'socket.io'
-import { RoleEventGenerator } from './RoleEventFuncType'
-import { EventEmitter } from 'events'
+import { RoleEventGenerator, RoleEventGeneratorFunc } from './RoleEventFuncType'
 import { VoiceConnection } from 'discord.js'
-import Timer from '../../../common/Timer'
 import RedisWrapper from '../RedisWrapper'
 import { GameServerState } from './GameServerState'
+import { werewolfRole } from './roles/werewolf'
 
-export class GameServer extends EventEmitter {
-	public static readonly PauseEventSymbol = Symbol()
+const DEFAULT_FALLBACK_DELAY = 30000
 
-	public static readonly ResumeEventSymbol = Symbol()
-
-	public static readonly PlayTrackSymbol = Symbol()
-
-	public static readonly StopTrackSymbol = Symbol()
-
+export class GameServer {
 	public readonly gameState: GameState
 
 	public readonly roomId: string
+
+	private readonly roleGenerators = new Map<NightRoleOrderType, RoleEventGeneratorFunc>()
 
 	private timer: Timer
 
@@ -58,7 +55,6 @@ export class GameServer extends EventEmitter {
 	}
 
 	public constructor(roomId: string, server: Server, voiceConnection: VoiceConnection, redis: RedisWrapper<GameServerState>) {
-		super()
 		this.gameState = cloneDeep(DefaultGameState)
 		this.roomId = roomId
 		this.players = []
@@ -69,6 +65,8 @@ export class GameServer extends EventEmitter {
 		this.setupVoiceConnection()
 
 		this.timer = new Timer(this.onTimer)
+
+		this.roleGenerators.set(Card.Werewolf, werewolfRole)
 	}
 
 	public getGameServerState(): GameServerState {
@@ -87,7 +85,6 @@ export class GameServer extends EventEmitter {
 	public tearDown() {
 		// Ignore promise
 		this.redis.delete(this.roomId).then()
-		this.removeAllListeners()
 		this.removeAllPlayers()
 		this.voiceConnection.disconnect()
 	}
@@ -150,6 +147,10 @@ export class GameServer extends EventEmitter {
 		socket.on(getGameEventName(GameEvent.UpdateCardCount), (card: Card, count: number) => {
 			this.updateCardCount(card, count)
 		})
+
+		socket.on(getGameEventName(GameEvent.RequestStart), () => {
+			this.startGame()
+		})
 	}
 
 	private updateGamePhase(phase: GamePhase) {
@@ -160,6 +161,19 @@ export class GameServer extends EventEmitter {
 	private updateNightRole(role: NightRoleOrderType) {
 		this.gameState.nightRole = role
 		this.sendGameEvent(GameEvent.AnnounceNightRole, role)
+
+		// TODO: Find role and play it
+		const genFunc = this.roleGenerators.get(role)
+		if (!genFunc) {
+			console.warn(`Generator function for role [${role}] not found.`)
+			return
+		}
+
+		this.generator = genFunc(this)
+		const current = this.generator.next()
+		if (current.done === false) {
+			this.timer.start(current.value)
+		}
 	}
 
 	private sendGameStateToSocket(socket: Socket) {
@@ -198,6 +212,10 @@ export class GameServer extends EventEmitter {
 		localGameState.nightRole = nightRole
 		localGameState.deck = deck
 		localGameState.cardCountState = cardCountState
+
+		if (nightRole !== null) {
+			this.updateNightRole(nightRole)
+		}
 	}
 
 	public getUserDetailsById(userId: string) {
@@ -242,6 +260,8 @@ export class GameServer extends EventEmitter {
 
 		this.setupPlayerSocket(player)
 
+		this.sendGameStateToSocket(socket)
+
 		this.sendPlayerStateToAll()
 	}
 
@@ -269,15 +289,6 @@ export class GameServer extends EventEmitter {
 		this.storeGameServerState()
 	}
 
-	public tempInitCardCountState(cardCountState: CardCountState) {
-		this.gameState.cardCountState = cardCountState
-	}
-
-	public tempStartSequence(gen: RoleEventGenerator) {
-		this.generator = gen
-		this.generator.next()
-	}
-
 	public startGame() {
 		if (this.gameState.phase !== GamePhase.Setup)
 			return
@@ -288,8 +299,7 @@ export class GameServer extends EventEmitter {
 		const validationResult = isDeckValid(this.gameState, this.players.length)
 
 		if (validationResult !== null) {
-			// TODO: Emit errors
-			console.error('Validation failed for game', validationResult)
+			this.sendGameEvent(GameEvent.ValidationError, validationResult)
 			return
 		}
 
@@ -313,6 +323,8 @@ export class GameServer extends EventEmitter {
 		this.updateGamePhase(GamePhase.Night)
 
 		this.storeGameServerState()
+
+		this.updateNextNightRole()
 	}
 
 	public updateCardCount(card: Card, count: number) {
@@ -370,24 +382,55 @@ export class GameServer extends EventEmitter {
 		return this.gameState.deck[this.getMiddleCardRealIndex(middleCardIndex)]
 	}
 
+	public getPlayersWithStartingCards(cardOrCards: Card | Card[]): PlayerWithIndex[] {
+		const cards = Array.isArray(cardOrCards) ? cardOrCards : [cardOrCards]
+
+		return this.players.map((player, index) => {
+			if (cards.includes(player.startingCard)) {
+				return {
+					player,
+					index
+				}
+			}
+
+			return null
+		}).filter(p => p !== null)
+	}
+
 	public pause() {
 		this.timer.pause()
-		this.emit(GameServer.PauseEventSymbol)
+		// TODO: Pause timer
 	}
 
 	public resume() {
 		this.timer.resume()
-		this.emit(GameServer.ResumeEventSymbol)
+		// TODO: Resume timer
 	}
 
-	public playTrack(trackName: string) {
+	public static buildRoleTrackName(roleName: string, stage: string) {
+		return `en_male_${roleName.toLowerCase()}_${stage.toLowerCase()}.ogg`
+	}
+
+	public playRoleWakeUp(roleName: string) {
+		return this.playTrack(GameServer.buildRoleTrackName(roleName, 'wake'))
+	}
+
+	public playRoleCloseEyes(roleName: string) {
+		return this.playTrack(GameServer.buildRoleTrackName(roleName, 'close'))
+	}
+
+	public playTrack(trackName: string, fallbackDelay: number = DEFAULT_FALLBACK_DELAY) {
 		this.currentTrackName = trackName
-		this.emit(GameServer.PlayTrackSymbol, trackName)
+		const fullPath = path.join(__dirname, '../../audio/', trackName)
+		this.voiceConnection.play(fs.createReadStream(fullPath), {highWaterMark: 50, type: 'ogg/opus'})
+		this.voiceConnection.dispatcher.once('finish', () => this.onTrackFinished(trackName))
+
+		return fallbackDelay
 	}
 
 	public stopTrack() {
 		if (this.currentTrackName !== null) {
-			this.emit(GameServer.StopTrackSymbol, this.currentTrackName)
+			this.voiceConnection.dispatcher.destroy()
 			this.currentTrackName = null
 		}
 	}

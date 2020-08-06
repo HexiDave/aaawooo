@@ -1,6 +1,6 @@
 type TimerCallback = () => void
 
-export default class Timer {
+export class Timer {
 	private startTime: number
 	private remainingTime: number
 	private timerId: number

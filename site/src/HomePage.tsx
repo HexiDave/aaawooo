@@ -7,13 +7,15 @@ import {
 	CardCountLimit,
 	DefaultGameState,
 	GameEvent,
+	GamePhase,
 	GameState,
-	getGameEventName,
-	UserDetails
+	getGameEventName, ShowPlayersOtherRolesPacket,
+	Timer,
+	UserDetails,
+	ValidationResult
 } from '../../common'
 import { setGameEventHandler } from './setGameEventHandler'
 import classes from './HomePage.module.scss'
-import Timer from '../../common/Timer'
 import cloneDeep from 'lodash/cloneDeep'
 
 const CARD_UPDATE_DEBOUNCE = 200
@@ -52,11 +54,18 @@ export default function HomePage() {
 		socket.emit(getGameEventName(GameEvent.UpdateCardCount), cardCount.card, cardCount.count)
 	}, [socket])
 
+	const sendGameStartRequest = useCallback(() => {
+		if (!socket)
+			return
+
+		socket.emit(getGameEventName(GameEvent.RequestStart))
+	}, [socket])
+
 	useEffect(() => {
-		if (connectionStage === ConnectionStage.None) {
+		if (socket === null && connectionStage === ConnectionStage.None) {
 			history.push('/login')
 		}
-	}, [history, connectionStage])
+	}, [history, connectionStage, socket])
 
 	useEffect(() => {
 		const timer = timerRef.current = new Timer(sendCardUpdate)
@@ -67,7 +76,7 @@ export default function HomePage() {
 	}, [sendCardUpdate])
 
 	useEffect(() => {
-		if (socket === null || connectionStage !== ConnectionStage.Success)
+		if (socket === null)
 			return
 
 		setGameEventHandler(socket, GameEvent.UpdatePlayers, (userDetails: UserDetails[]) => {
@@ -88,8 +97,27 @@ export default function HomePage() {
 			setCardCountState(card, count)
 		})
 
+		setGameEventHandler(socket, GameEvent.ValidationError, (validationResult: ValidationResult) => {
+			console.warn('Validation error:', validationResult.description)
+		})
+
+		setGameEventHandler(socket, GameEvent.PhaseChange, (phase: GamePhase) => {
+			setGameState(s => ({
+				...s,
+				phase
+			}))
+		})
+
+		setGameEventHandler(socket, GameEvent.ShowPlayersOtherRoles, (packet: ShowPlayersOtherRolesPacket) => {
+			console.log('Received ShowPlayersOtherRolesPacket', packet)
+		})
+
 		socket.emit(getGameEventName(GameEvent.PlayerReady))
-	}, [socket, connectionStage])
+
+		return () => {
+			socket.removeAllListeners()
+		}
+	}, [socket])
 
 	const setCardCountState = (card: Card, count: number) => {
 		setGameState(s => ({
@@ -154,28 +182,34 @@ export default function HomePage() {
 					</ul>
 				</div>
 
-				<div className={classes.column}>
-					Card counts
-					<ul>
-						{CardArray
-							.filter(card => typeof gameState.cardCountState[card] === 'number')
-							.map(card => (
-								<li key={card}>
-									<div>{card}</div>
-									<div>
-										<button onClick={decrementCardCountClick(card)}>
-											-
-										</button>
-										{gameState.cardCountState[card]}
-										<button onClick={incrementCardCountClick(card)}>
-											+
-										</button>
-									</div>
-								</li>
-							))
-						}
-					</ul>
-				</div>
+				{gameState.phase === GamePhase.Setup && (
+					<div className={classes.column}>
+						Card counts
+						<ul>
+							{CardArray
+								.filter(card => typeof gameState.cardCountState[card] === 'number')
+								.map(card => (
+									<li key={card}>
+										<div>{card}</div>
+										<div>
+											<button onClick={decrementCardCountClick(card)}>
+												-
+											</button>
+											{gameState.cardCountState[card]}
+											<button onClick={incrementCardCountClick(card)}>
+												+
+											</button>
+										</div>
+									</li>
+								))
+							}
+						</ul>
+
+						<button onClick={sendGameStartRequest}>
+							Start game
+						</button>
+					</div>
+				)}
 			</div>
 		</main>
 	)

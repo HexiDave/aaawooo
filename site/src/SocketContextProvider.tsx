@@ -41,10 +41,15 @@ export default function SocketContextProvider({children}: PropsWithChildren<{}>)
 		})
 
 		socket.on('reconnect_attempt', () => {
+			console.log('Reconnect attempted')
 			const refreshCode = localStorage.getItem(WEREWOLF_REFRESH_CODE_KEY)
 			socket.io.opts.query = {
 				refreshCode
 			} as HandshakeQuery
+		})
+
+		socket.on('reconnect', () => {
+			console.log('Reconnected')
 		})
 
 		socket.on('message', (msg: string) => {
@@ -83,6 +88,9 @@ export default function SocketContextProvider({children}: PropsWithChildren<{}>)
 	}, [inviteCode, connectionStage])
 
 	useEffect(() => {
+		if (socket !== null)
+			return
+
 		const refreshCode = localStorage.getItem(WEREWOLF_REFRESH_CODE_KEY)
 
 		if (refreshCode !== null) {
@@ -94,11 +102,15 @@ export default function SocketContextProvider({children}: PropsWithChildren<{}>)
 
 			setupSocket(socket)
 		}
-	}, [])
+	}, [socket])
 
 	useEffect(() => {
+		if (socket === null)
+			return
+
 		return () => {
-			socket?.close()
+			socket.removeAllListeners()
+			socket.close()
 		}
 	}, [socket])
 

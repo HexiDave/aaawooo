@@ -10,3 +10,8 @@ export interface BasePlayer {
 export default interface Player extends BasePlayer {
 	socket: Socket | null
 }
+
+export interface PlayerWithIndex {
+	index: number
+	player: Player
+}

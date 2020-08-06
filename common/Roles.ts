@@ -20,13 +20,15 @@ export const NightRoleOrder = [
 
 export type NightRoleOrderType = ElementType<typeof NightRoleOrder>
 
+export type NightRoleOrderTypeOrNull = NightRoleOrderType | null
+
 /**
  * Returns the next night role in order, or null if the last one
  * @param role	Current night role
  * @returns	Next role or null
  */
-export function getNextNightRole(role: NightRoleOrderType): NightRoleOrderType | null {
-	const nextRoleIndex = NightRoleOrder.indexOf(role) + 1
+export function getNextNightRole(role: NightRoleOrderTypeOrNull): NightRoleOrderTypeOrNull {
+	const nextRoleIndex = role === null ? 0 : NightRoleOrder.indexOf(role) + 1
 
 	// Out of bounds
 	if (nextRoleIndex >= NightRoleOrder.length)

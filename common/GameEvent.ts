@@ -1,3 +1,5 @@
+import { Card } from './Card'
+
 export enum GameEvent {
 	UpdateGameState,
 	PhaseChange,
@@ -7,7 +9,17 @@ export enum GameEvent {
 	UpdatePlayerHistory,
 	AnnounceNightRole,
 	ShowRoleTimer,
-	PlayerReady
+	PlayerReady,
+	RequestStart,
+	ValidationError,
+	ShowPlayersOtherRoles
 }
 
 export const getGameEventName = (gameEvent: GameEvent) => GameEvent[gameEvent]
+
+export interface ShowPlayersOtherRolesPacketItem {
+	index: number
+	card: Card
+}
+
+export type ShowPlayersOtherRolesPacket = ShowPlayersOtherRolesPacketItem[]

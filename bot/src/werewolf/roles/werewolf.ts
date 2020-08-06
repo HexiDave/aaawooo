@@ -1,5 +1,8 @@
 import { GameServer } from '../GameServer'
 import { RoleEventGenerator } from '../RoleEventFuncType'
+import { Card, GameEvent, getGameEventName, ShowPlayersOtherRolesPacket } from '../../../../common'
+
+const ROLE = 'werewolf'
 
 const delay = (delay: number) => new Promise<void>(res => setTimeout(res, delay))
 
@@ -17,10 +20,41 @@ const dummyMessage = (message: string, delay: number) => {
 	return delay
 }
 
+function showPlayerWerewolves(gameServer: GameServer) {
+	const werewolfPlayers = gameServer.getPlayersWithStartingCards([
+		Card.Werewolf,
+		Card.AlphaWolf,
+		Card.MysticWolf,
+		Card.DreamWolf
+	])
+
+	console.debug('Werewolf players', werewolfPlayers)
+
+	// Mask the werewolf types, except DreamWolf which has its thumb up
+	const werewolfIdentityPacket: ShowPlayersOtherRolesPacket = werewolfPlayers.map(p => ({
+		card: p.player.startingCard === Card.DreamWolf ? Card.DreamWolf : Card.Werewolf,
+		index: p.index
+	}))
+
+	console.debug('Ident packet', werewolfIdentityPacket)
+
+	for (let werewolfPlayer of werewolfPlayers) {
+		const {index, player} = werewolfPlayer
+
+		// Only show the awake werewolves
+		if (player.startingCard !== Card.DreamWolf) {
+			console.debug('Sending packet to', index, player.userDetails?.displayName)
+			player.socket?.emit(getGameEventName(GameEvent.ShowPlayersOtherRoles), werewolfIdentityPacket)
+		}
+	}
+
+	return 5000
+}
+
 export function* werewolfRole(gameServer: GameServer): RoleEventGenerator {
-	yield playTrack(gameServer, 'werewolf_wake_up', 5000, 10000)
-	yield dummyMessage('~Waiting for 2 seconds~', 2000)
-	yield playTrack(gameServer, 'werewolf_close_eyes', 3000, 1000)
+	yield gameServer.playRoleWakeUp(ROLE)
+	yield showPlayerWerewolves(gameServer)
+	yield gameServer.playRoleCloseEyes(ROLE)
 	yield dummyMessage('Done werewolf role', 1000)
 
 	return
