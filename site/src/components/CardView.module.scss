@@ -1,0 +1,138 @@
+@mixin card($pathName, $realName, $topOffset: 3%, $offsetX: 0, $darkBG: false) {
+  &.#{$pathName} {
+    @if ($darkBG) {
+      background-image: url(../../images/card-face-backdrop-dark.png);
+    }
+
+    &:before {
+      background-image: url("../../images/cards/#{$pathName}.png");
+      top: $topOffset;
+      left: $offsetX;
+    }
+
+    &:after {
+      content: $realName;
+    }
+  }
+}
+
+.root {
+  margin-top: 16px;
+  width: 128px;
+  height: 176px;
+  background: url(../../images/card-back.png) no-repeat center;
+  background-size: contain;
+  border-radius: 12px;
+  border: 3px solid black;
+  box-sizing: content-box;
+
+  &.faceCard {
+    background: url(../../images/card-face-backdrop.png) no-repeat center;
+    background-size: cover;
+    position: relative;
+
+    &:before {
+      position: absolute;
+      display: block;
+      content: '';
+      left: 0;
+      right: 0;
+      bottom: -1px; // Fixes some weird half-pixel border issue
+      background-repeat: no-repeat;
+      background-position: center bottom;
+      background-size: cover;
+    }
+
+    &:after {
+      position: absolute;
+      display: block;
+      font-weight: bold;
+      color: white;
+      text-transform: uppercase;
+      top: 8px;
+      width: 100%;
+      text-align: center;
+      text-shadow: -1px 1px 0 #000,
+      1px 1px 0 #000,
+      1px -1px 0 #000,
+      -1px -1px 0 #000;
+    }
+
+    @include card("alphaWolf", "Alpha Wolf", 3%, 0, true);
+    @include card("appSeer", "Apprentice Seer");
+    @include card("dreamWolf", "Dream Wolf", 12%, 9%, true);
+    @include card("drunk", "Drunk", 12%);
+    @include card("hunter", "Hunter");
+    @include card("insomniac", "Insomniac");
+    @include card("mason", "Mason");
+    @include card("minion", "Minion", 3%, 0, true);
+    @include card("mysticWolf", "Mystic Wolf", 6%, 13%, true);
+    @include card("pi", "Paranormal Investigator", 12%, 13%);
+    @include card("revealer", "Revealer", 9%, 9%);
+    @include card("robber", "Robber", 11%);
+    @include card("seer", "Seer");
+    @include card("tanner", "Tanner");
+    @include card("troublemaker", "Troublemaker");
+    @include card("vIdiot", "Village Idiot");
+    @include card("villager", "Villager");
+    @include card("werewolf", "Werewolf", 3%, 0, true);
+    @include card("witch", "Witch");
+  }
+
+  &.mediumSize {
+    width: 96px;
+    height: 132px;
+
+    &:after {
+      font-size: 12px;
+    }
+  }
+
+  &.flipping {
+    animation-duration: 200ms;
+    animation-iteration-count: 1;
+    animation-fill-mode: both;
+    animation-timing-function: ease-in-out;
+    transform: scaleX(1);
+
+    &.flipIn {
+      animation-name: flipIn;
+    }
+
+    &.flipOut {
+      animation-name: flipOut;
+    }
+  }
+
+  &.cannotClick {
+    filter: brightness(20%);
+  }
+
+  &.canClick {
+    filter: brightness(70%);
+    transition: filter 100ms;
+
+    &:hover {
+      cursor: pointer;
+      filter: brightness(100%);
+    }
+  }
+}
+
+@keyframes flipIn {
+  from {
+    transform: scaleX(1);
+  }
+  to {
+    transform: scaleX(0);
+  }
+}
+
+@keyframes flipOut {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}

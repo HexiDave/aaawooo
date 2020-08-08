@@ -18,6 +18,8 @@ export enum Card {
 	Drunk = 'drunk'
 }
 
+export type OptionalCard = Card | null
+
 export type AlphaWolfCards = 'none' | Card.Werewolf | Card.DreamWolf | Card.MysticWolf
 
 export const AlphaWolfCardArray: AlphaWolfCards[] = [
