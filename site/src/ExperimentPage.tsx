@@ -1,7 +1,7 @@
-import React, { useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import GameStage from './components/GameStage'
 import PlayerList from './components/PlayerList'
-import { Card, OptionalCard } from '../../common'
+import { Card, OptionalCard, Timer } from '../../common'
 import CardView, { ClickableState } from './components/CardView'
 
 const fakeUsers = Array.from({length: 8}).map(() => null)
@@ -19,7 +19,11 @@ const clickableUsers: number[] = [0, 3, 7]
 const isShowingClickable = clickableUsers.length > 0
 
 export default function ExperimentPage() {
+	const timerRef = useRef<Timer>()
+
 	const [shownCards, setShownCards] = useState<OptionalCard[]>(fakeUsers.map(_ => null))
+	const [isNight, setIsNight] = useState(false)
+	const [canChangeCycle, setCanChangeCycle] = useState(true)
 
 	const handleCardClick = (index: number) => {
 		setShownCards(s => ([
@@ -33,10 +37,23 @@ export default function ExperimentPage() {
 		setShownCards(fakeUsers.map(_ => null))
 	}
 
+	const handleToggleDayNight = () => {
+		setIsNight(s => !s)
+		setCanChangeCycle(false)
+		timerRef.current?.start(10_000)
+	}
+
+	useEffect(() => {
+		timerRef.current = new Timer(() => setCanChangeCycle(true))
+	}, [])
+
 	return (
-		<GameStage isNight={false}>
+		<GameStage isNight={isNight}>
 			<button onClick={handleClearClick}>
 				Clear
+			</button>
+			<button onClick={handleToggleDayNight} disabled={!canChangeCycle}>
+				{isNight ? 'Day' : 'Night'}
 			</button>
 
 			<CardView
