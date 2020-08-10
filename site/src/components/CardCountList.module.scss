@@ -1,0 +1,47 @@
+@import "../variables";
+@import "../colors";
+
+.root {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  margin: 0 200px 0 16px;
+}
+
+.details {
+  width: ($mediumCardWidth * 2) + ($mediumCardListMargin * 2);
+  margin: $mediumCardListMargin;
+
+  color: white;
+  font-weight: bold;
+  border-radius: 8px;
+  border: 2px solid $barBorderColor;
+  background-color: $barBackgroundColor;
+  padding: 16px;
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+
+  > div {
+
+    > span {
+      &.low {
+        color: #4892ac;
+      }
+
+      &.correct {
+        color: #0ccf0c;
+      }
+
+      &.high {
+        color: #ff552a;
+      }
+
+      &.unused {
+        color: #8a8a8a;
+      }
+    }
+  }
+}

@@ -1,3 +1,5 @@
+@import "../variables";
+
 @mixin card($pathName, $realName, $topOffset: 3%, $offsetX: 0, $darkBG: false) {
   &.#{$pathName} {
     @if ($darkBG) {
@@ -17,19 +19,19 @@
 }
 
 .root {
-  margin-top: 16px;
   width: 128px;
   height: 176px;
   background: url(../../images/card-back.png) no-repeat center;
-  background-size: contain;
+  background-size: cover;
   border-radius: 12px;
   border: 3px solid black;
-  box-sizing: content-box;
 
   &.faceCard {
     background: url(../../images/card-face-backdrop.png) no-repeat center;
     background-size: cover;
     position: relative;
+    transition: box-shadow 200ms, filter 100ms;
+    box-shadow: none;
 
     &:before {
       position: absolute;
@@ -80,11 +82,11 @@
   }
 
   &.mediumSize {
-    width: 96px;
+    width: $mediumCardWidth;
     height: 132px;
 
     &:after {
-      font-size: 12px;
+      font-size: 0.7em;
     }
   }
 
@@ -104,18 +106,42 @@
     }
   }
 
-  &.cannotClick {
+  &.defaultCannotClick {
     filter: brightness(20%);
   }
 
-  &.canClick {
+  &.defaultCanClick {
     filter: brightness(70%);
-    transition: filter 100ms;
 
     &:hover {
       cursor: pointer;
       filter: brightness(100%);
     }
+  }
+
+  &.glowCannotClick {
+
+  }
+
+  &.glowCanClick {
+    box-shadow: 0 0 4px 4px green;
+
+    &:hover {
+      box-shadow: 0 0 6px 6px lighten(green, 20%);
+      cursor: pointer;
+    }
+
+    &:active {
+      box-shadow: 0 0 4px 4px darken(green, 10%)
+    }
+  }
+
+  &.selected {
+    filter: brightness(100%)
+  }
+
+  &.notSelected {
+    filter: brightness(70%);
   }
 }
 

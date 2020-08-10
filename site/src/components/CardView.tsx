@@ -9,6 +9,23 @@ export enum ClickableState {
 	NotClickable
 }
 
+export enum ClickMode {
+	Normal,
+	Glow
+}
+
+export enum CardSize {
+	Small,
+	Medium,
+	Normal
+}
+
+export enum SelectionMode {
+	None,
+	Selected,
+	NotSelected
+}
+
 enum FlipState {
 	None,
 	FlipIn,
@@ -21,9 +38,19 @@ interface CardViewProps {
 	card: OptionalCard
 	clickableState: ClickableState
 	onClick?: () => void
+	cardSize?: CardSize
+	clickMode?: ClickMode
+	selectionMode?: SelectionMode
 }
 
-export default function CardView({card, clickableState, onClick}: CardViewProps) {
+export default function CardView({
+	card,
+	clickableState,
+	onClick,
+	cardSize = CardSize.Normal,
+	clickMode = ClickMode.Normal,
+	selectionMode = SelectionMode.None
+}: CardViewProps) {
 	const cachedCardRef = useRef<OptionalCard>(card)
 	const [flipState, setFlipState] = useState<FlipState>(FlipState.None)
 	const [faceCard, setFaceCard] = useState<OptionalCard>(card)
@@ -70,12 +97,17 @@ export default function CardView({card, clickableState, onClick}: CardViewProps)
 	return (
 		<div
 			className={clsx(classes.root, cardClass, {
-				[classes.canClick]: clickableState === ClickableState.Clickable,
-				[classes.cannotClick]: clickableState === ClickableState.NotClickable,
+				[classes.defaultCanClick]: clickMode === ClickMode.Normal && clickableState === ClickableState.Clickable,
+				[classes.defaultCannotClick]: clickMode === ClickMode.Normal && clickableState === ClickableState.NotClickable,
+				[classes.glowCanClick]: clickMode === ClickMode.Glow && clickableState === ClickableState.Clickable,
+				[classes.glowCannotClick]: clickMode === ClickMode.Glow && clickableState === ClickableState.NotClickable,
+				[classes.selected]: selectionMode === SelectionMode.Selected,
+				[classes.notSelected]: selectionMode === SelectionMode.NotSelected,
 				[classes.faceCard]: faceCard !== null,
 				[classes.flipping]: flipState !== FlipState.None,
 				[classes.flipIn]: flipState === FlipState.FlipIn,
-				[classes.flipOut]: flipState === FlipState.FlipOut
+				[classes.flipOut]: flipState === FlipState.FlipOut,
+				[classes.mediumSize]: cardSize === CardSize.Medium
 			})}
 			onClick={onCardClick}
 		/>

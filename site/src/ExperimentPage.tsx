@@ -1,8 +1,9 @@
-import React, { useEffect, useRef, useState } from 'react'
+import React, { useCallback, useEffect, useRef, useState } from 'react'
 import GameStage from './components/GameStage'
 import PlayerList from './components/PlayerList'
-import { Card, OptionalCard, Timer } from '../../common'
-import CardView, { ClickableState } from './components/CardView'
+import { AlphaWolfCards, Card, DefaultCardCountState, OptionalCard, Timer } from '../../common'
+import cloneDeep from 'lodash/cloneDeep'
+import CardCountList from './components/CardCountList'
 
 const fakeUsers = Array.from({length: 8}).map(() => null)
 const playerCards: OptionalCard[] = [
@@ -24,6 +25,7 @@ export default function ExperimentPage() {
 	const [shownCards, setShownCards] = useState<OptionalCard[]>(fakeUsers.map(_ => null))
 	const [isNight, setIsNight] = useState(false)
 	const [canChangeCycle, setCanChangeCycle] = useState(true)
+	const [cardCountState, setCardCountState] = useState(cloneDeep(DefaultCardCountState))
 
 	const handleCardClick = (index: number) => {
 		setShownCards(s => ([
@@ -43,23 +45,50 @@ export default function ExperimentPage() {
 		timerRef.current?.start(10_000)
 	}
 
+	const handleCardCountUpdate = useCallback((card: Card, count: number) => {
+		setCardCountState(s => {
+			const newState = {
+				...s,
+				[card]: count
+			}
+
+			if (card === Card.AlphaWolf && count === 0) {
+				newState.alphaWolfCard = 'none'
+			}
+
+			return newState
+		})
+	}, [])
+
+	const handleAlphaWolfCardChange = useCallback((card: Card) => {
+		setCardCountState(s => ({
+			...s,
+			alphaWolfCard: card as AlphaWolfCards
+		}))
+	}, [])
+
 	useEffect(() => {
 		timerRef.current = new Timer(() => setCanChangeCycle(true))
 	}, [])
 
 	return (
 		<GameStage isNight={isNight}>
-			<button onClick={handleClearClick}>
-				Clear
-			</button>
-			<button onClick={handleToggleDayNight} disabled={!canChangeCycle}>
-				{isNight ? 'Day' : 'Night'}
-			</button>
+			<div>
+				<button onClick={handleClearClick}>
+					Clear
+				</button>
+				<button onClick={handleToggleDayNight} disabled={!canChangeCycle}>
+					{isNight ? 'Day' : 'Night'}
+				</button>
+			</div>
 
-			<CardView
-				clickableState={ClickableState.None}
-				card={Card.Seer}
+			<CardCountList
+				playerCount={fakeUsers.length}
+				cardCountState={cardCountState}
+				onUpdateCardCount={handleCardCountUpdate}
+				onUpdateAlphaWolfCardChange={handleAlphaWolfCardChange}
 			/>
+
 			<PlayerList
 				userDetailsList={fakeUsers}
 				clickableUsers={clickableUsers}

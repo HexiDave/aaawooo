@@ -1,5 +1,5 @@
 import { AlphaWolfCardArray, AlphaWolfCards, Card, CardArray } from './Card'
-import { CardCountLimit } from './CardCountLimit'
+import { getCardLimit } from './CardCountLimit'
 import { shuffleCards } from './utils'
 
 export interface CardCountState extends Record<Card, number> {
@@ -45,7 +45,7 @@ export function isCardCountValid(state: CardCountState, card: Card): CardBound {
 	if (count < 0)
 		return CardBound.Low
 
-	const upperLimit = CardCountLimit[card] ?? 1
+	const upperLimit = getCardLimit(card)
 
 	// noinspection RedundantIfStatementJS
 	if (count > upperLimit)
@@ -62,7 +62,7 @@ export function isCardCountValid(state: CardCountState, card: Card): CardBound {
  * @returns A new copy of the state with the updated values
  */
 export function updateCardCount(state: CardCountState, card: Card, count: number): CardCountState {
-	const upperLimit = CardCountLimit[card] ?? 1
+	const upperLimit = getCardLimit(card)
 	const value = Math.max(Math.min(count, upperLimit), 0)
 
 	return {

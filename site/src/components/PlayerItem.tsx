@@ -29,6 +29,7 @@ export default function PlayerItem({userDetails, seatIndex, clickableState, show
 				clickableState={clickableState}
 				onClick={onCardClick}
 			/>
+			<div className={classes.floorLight}/>
 		</li>
 	)
 }

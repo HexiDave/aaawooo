@@ -1,29 +1,17 @@
+@import "../colors";
+
 .root {
   padding: 16px;
   display: flex;
   flex-direction: column;
   align-items: center;
-
-  &:after {
-    cursor: default;
-    content: "";
-    display: block;
-    width: 128px;
-    height: 12px;
-    background: radial-gradient(rgba(#fff, 0.6) 0%, rgba(#fff, 0.4) 30%, rgba(#fff, 0.0) 80%);
-    position: absolute;
-    bottom: -20px;
-    border-radius: 50%;
-  }
 }
-
-$displayNameBackgroundColor: #2f3136;
 
 .displayName {
   margin-bottom: 8px;
   color: white;
-  background: $displayNameBackgroundColor;
-  border: 2px solid lighten($displayNameBackgroundColor, 10%);
+  background: $barBackgroundColor;
+  border: 2px solid $barBorderColor;
   padding: 8px 16px;
   border-radius: 4px;
 }
@@ -31,6 +19,7 @@ $displayNameBackgroundColor: #2f3136;
 .avatar {
   position: relative;
   display: block;
+  margin-bottom: 16px;
 
   > img {
     width: 64px;
@@ -43,20 +32,11 @@ $displayNameBackgroundColor: #2f3136;
   }
 }
 
-@mixin card($pathName, $realName, $topOffset: 6px, $offsetX: 0, $darkBG: false) {
-  &.#{$pathName} {
-    @if ($darkBG) {
-      background-image: url(../../images/card-face-backdrop-dark.png);
-    }
-
-    &:before {
-      background-image: url("../../images/cards/#{$pathName}.png");
-      top: $topOffset;
-      left: $offsetX;
-    }
-
-    &:after {
-      content: $realName;
-    }
-  }
+.floorLight {
+  margin-top: 20px;
+  cursor: default;
+  width: 128px;
+  height: 12px;
+  background: radial-gradient(rgba(#fff, 0.6) 0%, rgba(#fff, 0.4) 30%, rgba(#fff, 0.0) 80%);
+  border-radius: 50%;
 }
