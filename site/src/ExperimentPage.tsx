@@ -43,6 +43,7 @@ export default function ExperimentPage() {
 
 	const handleClearClick = () => {
 		setShownCards(fakeUsers.map(_ => null))
+		setCardCountState(cloneDeep(DefaultCardCountState))
 	}
 
 	const handleToggleDayNight = () => {

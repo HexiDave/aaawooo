@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { OptionalCard } from '../../../common'
 import clsx from 'clsx'
 import classes from './CardView.module.scss'
+import { CardNames } from '../cardNames'
 
 export enum ClickableState {
 	None = 0,
@@ -13,19 +14,18 @@ export enum ClickableState {
 
 export enum ClickMode {
 	Normal,
-	Glow
+	Tagged
 }
 
 export enum CardSize {
-	Small,
-	Medium,
+	Mini,
 	Normal
 }
 
-export enum SelectionMode {
+export enum ActivationMode {
 	None,
-	Selected,
-	NotSelected
+	Activate,
+	Inactive
 }
 
 enum FlipState {
@@ -42,7 +42,7 @@ interface CardViewProps {
 	onClick?: () => void
 	cardSize?: CardSize
 	clickMode?: ClickMode
-	selectionMode?: SelectionMode
+	selectionMode?: ActivationMode
 }
 
 export default function CardView({
@@ -51,7 +51,7 @@ export default function CardView({
 	onClick,
 	cardSize = CardSize.Normal,
 	clickMode = ClickMode.Normal,
-	selectionMode = SelectionMode.None
+	selectionMode = ActivationMode.None
 }: CardViewProps) {
 	const cachedCardRef = useRef<OptionalCard>(card)
 	const [flipState, setFlipState] = useState<FlipState>(FlipState.None)
@@ -99,21 +99,30 @@ export default function CardView({
 	return (
 		<div
 			className={clsx(classes.root, cardClass, {
-				[classes.defaultCanClick]: clickMode === ClickMode.Normal && clickableState === ClickableState.Clickable,
-				[classes.defaultCannotClick]: clickMode === ClickMode.Normal && clickableState === ClickableState.NotClickable,
-				[classes.glowCanClick]: clickMode === ClickMode.Glow && clickableState === ClickableState.Clickable,
-				[classes.glowClicked]: clickMode === ClickMode.Glow && clickableState === ClickableState.Clicked,
-				[classes.selected]: selectionMode === SelectionMode.Selected,
-				[classes.notSelected]: selectionMode === SelectionMode.NotSelected,
-				[classes.faceCard]: faceCard !== null,
+				[classes.mini]: cardSize === CardSize.Mini,
 				[classes.flipping]: flipState !== FlipState.None,
 				[classes.flipIn]: flipState === FlipState.FlipIn,
 				[classes.flipOut]: flipState === FlipState.FlipOut,
-				[classes.mediumSize]: cardSize === CardSize.Medium
+				[classes.active]: selectionMode === ActivationMode.Activate,
+				[classes.inactive]: selectionMode === ActivationMode.Inactive,
 			})}
-			onClick={onCardClick}
 		>
-			<div className={classes.cardText}/>
+			<div
+				className={clsx(classes.cardFace, {
+					[classes.faceCard]: faceCard !== null,
+					[classes.canClick]: clickMode === ClickMode.Normal && clickableState === ClickableState.Clickable,
+					[classes.cannotClick]: clickMode === ClickMode.Normal && clickableState === ClickableState.NotClickable,
+				})}
+				onClick={onCardClick}
+			/>
+
+			<div
+				className={clsx({
+					[classes.cardText]: faceCard !== null
+				})}
+			>
+				{faceCard && CardNames[faceCard]}
+			</div>
 		</div>
 	)
 }

@@ -1,23 +1,16 @@
 @import "../variables";
 
-$baseGlowColor: #ff9b00;
-$clickedGlowColor: green;
+@mixin card($pathName, $topOffset: 3%, $offsetX: 0, $darkBG: false) {
+  .#{$pathName} {
+    .cardFace {
+      @if ($darkBG) {
+        background-image: url(../../images/card-face-backdrop-dark.png);
+      }
 
-@mixin card($pathName, $realName, $topOffset: 3%, $offsetX: 0, $darkBG: false) {
-  &.#{$pathName} {
-    @if ($darkBG) {
-      background-image: url(../../images/card-face-backdrop-dark.png);
-    }
-
-    &:before {
-      background-image: url("../../images/cards/#{$pathName}.png");
-      top: $topOffset;
-      left: $offsetX;
-    }
-
-    .cardText {
-      &:after {
-        content: $realName;
+      &:before {
+        background-image: url("../../images/cards/#{$pathName}.png");
+        top: $topOffset;
+        left: $offsetX;
       }
     }
   }
@@ -26,73 +19,26 @@ $clickedGlowColor: green;
 .root {
   width: 128px;
   height: 176px;
-  background: url(../../images/card-back.png) no-repeat center;
-  background-size: cover;
   border-radius: 12px;
-  border: 3px solid black;
+  position: relative;
 
-  &.faceCard {
-    background: url(../../images/card-face-backdrop.png) no-repeat center;
-    background-size: cover;
-    position: relative;
-    transition: box-shadow 200ms, filter 100ms;
-    box-shadow: none;
-
-    &:before {
-      position: absolute;
-      display: block;
-      content: '';
-      left: 0;
-      right: 0;
-      bottom: -1px; // Fixes some weird half-pixel border issue
-      background-repeat: no-repeat;
-      background-position: center bottom;
-      background-size: cover;
+  &.active {
+    .faceCard, .cardText {
+      filter: brightness(100%)
     }
-
-    .cardText {
-      &:after {
-        position: absolute;
-        display: block;
-        font-weight: bold;
-        color: white;
-        text-transform: uppercase;
-        top: 8px;
-        width: 100%;
-        text-align: center;
-        text-shadow: -1px 1px 0 #000,
-        1px 1px 0 #000,
-        1px -1px 0 #000,
-        -1px -1px 0 #000;
-      }
-    }
-
-    @include card("alphaWolf", "Alpha Wolf", 3%, 0, true);
-    @include card("appSeer", "Apprentice Seer");
-    @include card("dreamWolf", "Dream Wolf", 12%, 9%, true);
-    @include card("drunk", "Drunk", 12%);
-    @include card("hunter", "Hunter");
-    @include card("insomniac", "Insomniac");
-    @include card("mason", "Mason");
-    @include card("minion", "Minion", 3%, 0, true);
-    @include card("mysticWolf", "Mystic Wolf", 6%, 13%, true);
-    @include card("pi", "Paranormal Investigator", 12%, 13%);
-    @include card("revealer", "Revealer", 9%, 9%);
-    @include card("robber", "Robber", 11%);
-    @include card("seer", "Seer");
-    @include card("tanner", "Tanner");
-    @include card("troublemaker", "Troublemaker");
-    @include card("vIdiot", "Village Idiot");
-    @include card("villager", "Villager");
-    @include card("werewolf", "Werewolf", 3%, 0, true);
-    @include card("witch", "Witch");
   }
 
-  &.mediumSize {
+  &.inactive {
+    .faceCard, .cardText {
+      filter: brightness(70%);
+    }
+  }
+
+  &.mini {
     width: $mediumCardWidth;
     height: 132px;
 
-    .cardText:after {
+    .cardText {
       font-size: 0.7em;
     }
   }
@@ -112,12 +58,40 @@ $clickedGlowColor: green;
       animation-name: flipOut;
     }
   }
+}
 
-  &.defaultCannotClick {
+.cardFace {
+  position: relative;
+  background: url(../../images/card-back.png) no-repeat center;
+  background-size: cover;
+  transition: box-shadow 200ms, filter 100ms;
+  box-shadow: none;
+  border: 3px solid black;
+  height: 100%;
+  border-radius: 12px;
+
+  &.faceCard {
+    background: url(../../images/card-face-backdrop.png) no-repeat center;
+    background-size: cover;
+  }
+
+  &:before {
+    position: absolute;
+    display: block;
+    content: '';
+    left: 0;
+    right: 0;
+    bottom: -1px; // Fixes some weird half-pixel border issue
+    background-repeat: no-repeat;
+    background-position: center bottom;
+    background-size: cover;
+  }
+
+  &.cannotClick {
     filter: brightness(20%);
   }
 
-  &.defaultCanClick {
+  &.canClick {
     filter: brightness(70%);
 
     &:hover {
@@ -125,66 +99,43 @@ $clickedGlowColor: green;
       filter: brightness(100%);
     }
   }
-
-  &.glowCanClick, &.glowClicked {
-    cursor: pointer;
-
-    &:after {
-      display: block;
-      position: absolute;
-      bottom: -20px;
-      cursor: pointer;
-      font-size: 12px;
-      color: white;
-      background-color: black;
-      width: 100%;
-    }
-  }
-
-  &.glowCanClick {
-    &:after {
-      content: "GlowCanClick";
-    }
-
-    &:hover {
-      &:after {
-        content: "GlowCanClickHover";
-      }
-    }
-
-    &:active {
-      &:after {
-        content: "GlowCanClickActive";
-      }
-    }
-  }
-
-  &.glowClicked {
-    &:after {
-      content: "GlowCanClicked";
-    }
-
-    &:hover {
-      &:after {
-        content: "GlowCanClickedHover";
-      }
-    }
-
-    &:active {
-      &:after {
-        content: "GlowCanClickedActive";
-      }
-    }
-  }
-
-  &.selected {
-    filter: brightness(100%)
-  }
-
-  &.notSelected {
-    filter: brightness(70%);
-  }
 }
+
+.cardText {
+  pointer-events: none;
+  position: absolute;
+  display: block;
+  font-weight: bold;
+  color: white;
+  text-transform: uppercase;
+  top: 8px;
+  width: 100%;
+  text-align: center;
+  text-shadow: -1px 1px 0 #000,
+  1px 1px 0 #000,
+  1px -1px 0 #000,
+  -1px -1px 0 #000;
+}
+
+@include card("alphaWolf", 3%, 0, true);
+@include card("appSeer");
+@include card("dreamWolf", 12%, 9%, true);
+@include card("drunk", 12%);
+@include card("hunter");
+@include card("insomniac");
+@include card("mason");
+@include card("minion", 3%, 0, true);
+@include card("mysticWolf", 6%, 13%, true);
+@include card("pi", 12%, 13%);
+@include card("revealer", 9%, 9%);
+@include card("robber", 11%);
+@include card("seer");
+@include card("tanner");
+@include card("troublemaker");
+@include card("vIdiot");
+@include card("villager");
+@include card("werewolf", 3%, 0, true);
+@include card("witch");
 
 @keyframes flipIn {
   from {

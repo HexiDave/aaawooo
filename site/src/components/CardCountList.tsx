@@ -12,6 +12,7 @@ import {
 import CardCountView from './CardCountView'
 import classes from './CardCountList.module.scss'
 import clsx from 'clsx'
+import { AlphaWolfCardNames } from '../cardNames'
 
 const CARD_UPDATE_DEBOUNCE = 200
 
@@ -119,16 +120,15 @@ export default function CardCountList({playerCount, cardCountState, onUpdateCard
 					</span>
 				</div>
 				<div>
-					Alpha wolf card:
-					{' '}
+					Alpha wolf card
 					<span
-						className={clsx({
+						className={clsx(classes.alphaWolf, {
 							[classes.unused]: !hasAlphaWolf,
 							[classes.high]: hasAlphaWolf && cardCounts.alphaWolfCard === 'none',
 							[classes.correct]: hasAlphaWolf && cardCounts.alphaWolfCard !== 'none'
 						})}
 					>
-						{cardCounts.alphaWolfCard}
+						{AlphaWolfCardNames[cardCounts.alphaWolfCard]}
 					</span>
 				</div>
 			</div>

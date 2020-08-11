@@ -3,9 +3,12 @@
 @import "../button";
 
 $buttonSize: 24px;
+$alphaWolfButtonColor: #1d9808;
 
 .root {
   margin: $mediumCardListMargin;
+  width: $mediumCardWidth;
+  position: relative;
 }
 
 .count {
@@ -14,8 +17,7 @@ $buttonSize: 24px;
   }
 }
 
-.controlsCounter {
-  width: $mediumCardWidth;
+.controlsContainer {
   display: flex;
   flex-direction: row;
   justify-content: space-between;
@@ -25,12 +27,71 @@ $buttonSize: 24px;
   padding: 8px;
   border-radius: 4px;
   border: 2px solid $barBorderColor;
-  margin-bottom:8px;
+  margin-bottom: 8px;
   user-select: none;
 
   button {
     @include button();
     width: $buttonSize;
     height: $buttonSize;
+  }
+}
+
+.cardContainer {
+  position: relative;
+
+  .tag {
+    display: block;
+    position: absolute;
+    bottom: -20px;
+    cursor: pointer;
+    font-size: 12px;
+    text-align: center;
+    color: white;
+    background-color: $buttonColor;
+    border-radius: 4px;
+    width: 100%;
+    opacity: 0;
+    user-select: none;
+    transform: translateY(-10px);
+    transition: opacity 100ms, transform 100ms, background-color 100ms;
+    box-shadow: 0 2px 1px -1px rgba(0, 0, 0, 0.2),
+    0px 1px 1px 0px rgba(0, 0, 0, 0.14),
+    0px 1px 3px 0px rgba(0, 0, 0, 0.12);
+
+    &.tagIsShown {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  &.isAlphaWolfCard {
+    cursor: pointer;
+
+    .tag {
+      cursor: pointer;
+    }
+
+    &:hover .tag {
+      background-color: $buttonHoverColor;
+    }
+
+    &:active .tag {
+      background-color: $buttonActiveColor;
+    }
+
+    &.isAlphaWolfCardClicked {
+      .tag {
+        background-color: $alphaWolfButtonColor;
+      }
+
+      &:hover .tag {
+        background-color: lighten($alphaWolfButtonColor, 5%);
+      }
+
+      &:active .tag {
+        background-color: darken($alphaWolfButtonColor, 10%);
+      }
+    }
   }
 }
