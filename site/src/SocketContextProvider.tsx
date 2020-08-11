@@ -7,7 +7,8 @@ const WEREWOLF_REFRESH_CODE_KEY = 'werewolfRefreshCode'
 export enum ConnectionStage {
 	None,
 	Connecting,
-	Success
+	Success,
+	Error
 }
 
 export interface SocketContextState {
@@ -56,7 +57,10 @@ export default function SocketContextProvider({children}: PropsWithChildren<{}>)
 			console.log('Got message', msg)
 		})
 
-		socket.on('error', (msg: string) => console.error('Socket error', msg))
+		socket.on('error', (msg: string) => {
+			setConnectionStage(ConnectionStage.Error)
+			console.error('Socket error', msg)
+		})
 
 		socket.on(getCommonMessageName(CommonMessage.RefreshCode), (refreshCode: string) => {
 			console.log('Got refresh code', refreshCode)
@@ -94,6 +98,7 @@ export default function SocketContextProvider({children}: PropsWithChildren<{}>)
 		const refreshCode = localStorage.getItem(WEREWOLF_REFRESH_CODE_KEY)
 
 		if (refreshCode !== null) {
+			setConnectionStage(ConnectionStage.Connecting)
 			const socket = io(`${process.env.REACT_APP_WS_ADDRESS}`, {
 				query: {
 					refreshCode

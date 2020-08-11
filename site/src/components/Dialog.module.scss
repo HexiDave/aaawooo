@@ -1,0 +1,33 @@
+@import "src/colors";
+
+.DialogBackdrop {
+  position: fixed;
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.3);
+  z-index: 5000;
+  transform: translateZ(0);
+  opacity: 0;
+  transition: opacity ease-in-out 250ms;
+}
+
+.DialogBackdropOpen {
+  opacity: 1;
+}
+
+.DialogContainer {
+  display: flex;
+  flex-direction: column;
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  background: $barBackgroundColor;
+  color: white;
+  padding: 16px;
+  border-radius: 8px;
+  border: 2px solid $barBorderColor;
+  box-shadow: 0 2px 1px -1px rgba(0, 0, 0, 0.2), 0px 1px 1px 0px rgba(0, 0, 0, 0.14), 0px 1px 3px 0px rgba(0, 0, 0, 0.12);
+}

@@ -4,9 +4,11 @@ import clsx from 'clsx'
 import classes from './CardView.module.scss'
 
 export enum ClickableState {
-	None,
-	Clickable,
-	NotClickable
+	None = 0,
+	Clickable = (1 << 0),
+	Clicked = (1 << 1),
+	NotClickable = (1 << 2),
+	CanClickFlag = (ClickableState.Clickable | ClickableState.Clicked)
 }
 
 export enum ClickMode {
@@ -84,7 +86,7 @@ export default function CardView({
 	}, [flipState])
 
 	const onCardClick = useCallback(() => {
-		if (clickableState !== ClickableState.Clickable || flipState !== FlipState.None)
+		if ((clickableState & ClickableState.CanClickFlag) === 0 || flipState !== FlipState.None)
 			return
 
 		if (onClick) {
@@ -100,7 +102,7 @@ export default function CardView({
 				[classes.defaultCanClick]: clickMode === ClickMode.Normal && clickableState === ClickableState.Clickable,
 				[classes.defaultCannotClick]: clickMode === ClickMode.Normal && clickableState === ClickableState.NotClickable,
 				[classes.glowCanClick]: clickMode === ClickMode.Glow && clickableState === ClickableState.Clickable,
-				[classes.glowCannotClick]: clickMode === ClickMode.Glow && clickableState === ClickableState.NotClickable,
+				[classes.glowClicked]: clickMode === ClickMode.Glow && clickableState === ClickableState.Clicked,
 				[classes.selected]: selectionMode === SelectionMode.Selected,
 				[classes.notSelected]: selectionMode === SelectionMode.NotSelected,
 				[classes.faceCard]: faceCard !== null,
@@ -110,6 +112,8 @@ export default function CardView({
 				[classes.mediumSize]: cardSize === CardSize.Medium
 			})}
 			onClick={onCardClick}
-		/>
+		>
+			<div className={classes.cardText}/>
+		</div>
 	)
 }

@@ -5,11 +5,14 @@ import clsx from 'clsx'
 
 const DIALOG_TIMEOUT = 250
 
-interface DialogProps extends PropsWithChildren<{}> {
+export interface BaseDialogProps {
 	isOpen: boolean
+	containerClassName?: string
 }
 
-export default function Dialog({children, isOpen}: DialogProps) {
+type DialogProps = BaseDialogProps & PropsWithChildren<{}>
+
+export default function Dialog({children, isOpen, containerClassName}: DialogProps) {
 	const timerRef = useRef<NodeJS.Timer | null>(null)
 	const modalRootRef = useRef(document.getElementById('root-modal'))
 	const dialogContainerRef = useRef(document.createElement('div'))
@@ -48,10 +51,8 @@ export default function Dialog({children, isOpen}: DialogProps) {
 
 	const dialog = (isMounted || isOpen) ? (
 		<div className={clsx(classes.DialogBackdrop, {[classes.DialogBackdropOpen]: isOpen && isMounted})}>
-			<div className={classes.DialogContainer}>
-				<div className={classes.Dialog}>
-					{children}
-				</div>
+			<div className={clsx(classes.DialogContainer, containerClassName)}>
+				{children}
 			</div>
 		</div>
 	) : null

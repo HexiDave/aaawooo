@@ -1,0 +1,67 @@
+.root {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  right: 0;
+  z-index: 9999;
+  background-color: #282c34;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  opacity: 1;
+  transition: opacity 200ms;
+  flex-direction: column;
+
+  h1 {
+    color: white;
+    opacity: 0;
+    animation-name: fadeIn;
+    animation-fill-mode: both;
+    animation-delay: 100ms;
+    animation-duration: 500ms;
+    animation-timing-function: ease-in;
+  }
+
+  &.fadeOut {
+    opacity: 0;
+  }
+}
+
+.spinner {
+  width: 256px;
+  height: 256px;
+  border-radius: 50%;
+  background: #14141c url(../../images/cards/werewolf.png);
+  background-size: contain;
+  border: 2px solid #06091c;
+  opacity: 0;
+
+  animation-name: spin, fadeIn;
+  animation-fill-mode: both;
+  animation-timing-function: ease-out, ease-in;
+  animation-duration: 3000ms, 500ms;
+  animation-iteration-count: infinite, 1;
+  animation-delay: 600ms, 100ms;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0);
+  }
+  10% {
+    transform: rotate(-90deg);
+  }
+  100% {
+    transform: rotate(360deg * 3);
+  }
+}

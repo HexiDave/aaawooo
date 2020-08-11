@@ -1,0 +1,31 @@
+$buttonColor: #3b67d7;
+
+@mixin button() {
+  font-family: 'Roboto', sans-serif;
+  font-weight: bold;
+  font-size: 16px;
+  line-height: 16px;
+  cursor: pointer;
+  color: white;
+  background-color: $buttonColor;
+  border: 0;
+  border-radius: 4px;
+  transition: background-color 100ms;
+
+  &:hover {
+    background-color: lighten($buttonColor, 5%);
+  }
+
+  &:active {
+    background-color: darken($buttonColor, 5%);
+  }
+
+  &:focus {
+    outline: none;
+  }
+
+  &:disabled {
+    background-color: darken($buttonColor, 50%);
+    cursor: default;
+  }
+}

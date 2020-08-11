@@ -136,6 +136,7 @@ export default function CardCountList({playerCount, cardCountState, onUpdateCard
 				const count = cardCounts[card]
 				const isMaxed = count === getCardLimit(card)
 				const canClick = hasAlphaWolf && AlphaWolfCardArray.includes(card as AlphaWolfCards)
+				const isAlphaWolfClicked = cardCounts.alphaWolfCard === card
 				const handleClick = () => onUpdateAlphaWolfCardChange(card)
 
 				return (
@@ -144,6 +145,7 @@ export default function CardCountList({playerCount, cardCountState, onUpdateCard
 						card={card}
 						count={count}
 						isMaxed={isMaxed}
+						isAlphaWolfClicked={isAlphaWolfClicked}
 						onClick={canClick ? handleClick : undefined}
 						onIncrement={handleIncrement(card)}
 						onDecrement={handleDecrement(card)}

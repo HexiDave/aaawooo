@@ -1,5 +1,8 @@
 @import "../variables";
 
+$baseGlowColor: #ff9b00;
+$clickedGlowColor: green;
+
 @mixin card($pathName, $realName, $topOffset: 3%, $offsetX: 0, $darkBG: false) {
   &.#{$pathName} {
     @if ($darkBG) {
@@ -12,8 +15,10 @@
       left: $offsetX;
     }
 
-    &:after {
-      content: $realName;
+    .cardText {
+      &:after {
+        content: $realName;
+      }
     }
   }
 }
@@ -45,19 +50,21 @@
       background-size: cover;
     }
 
-    &:after {
-      position: absolute;
-      display: block;
-      font-weight: bold;
-      color: white;
-      text-transform: uppercase;
-      top: 8px;
-      width: 100%;
-      text-align: center;
-      text-shadow: -1px 1px 0 #000,
-      1px 1px 0 #000,
-      1px -1px 0 #000,
-      -1px -1px 0 #000;
+    .cardText {
+      &:after {
+        position: absolute;
+        display: block;
+        font-weight: bold;
+        color: white;
+        text-transform: uppercase;
+        top: 8px;
+        width: 100%;
+        text-align: center;
+        text-shadow: -1px 1px 0 #000,
+        1px 1px 0 #000,
+        1px -1px 0 #000,
+        -1px -1px 0 #000;
+      }
     }
 
     @include card("alphaWolf", "Alpha Wolf", 3%, 0, true);
@@ -85,7 +92,7 @@
     width: $mediumCardWidth;
     height: 132px;
 
-    &:after {
+    .cardText:after {
       font-size: 0.7em;
     }
   }
@@ -119,20 +126,54 @@
     }
   }
 
-  &.glowCannotClick {
+  &.glowCanClick, &.glowClicked {
+    cursor: pointer;
 
+    &:after {
+      display: block;
+      position: absolute;
+      bottom: -20px;
+      cursor: pointer;
+      font-size: 12px;
+      color: white;
+      background-color: black;
+      width: 100%;
+    }
   }
 
   &.glowCanClick {
-    box-shadow: 0 0 4px 4px green;
+    &:after {
+      content: "GlowCanClick";
+    }
 
     &:hover {
-      box-shadow: 0 0 6px 6px lighten(green, 20%);
-      cursor: pointer;
+      &:after {
+        content: "GlowCanClickHover";
+      }
     }
 
     &:active {
-      box-shadow: 0 0 4px 4px darken(green, 10%)
+      &:after {
+        content: "GlowCanClickActive";
+      }
+    }
+  }
+
+  &.glowClicked {
+    &:after {
+      content: "GlowCanClicked";
+    }
+
+    &:hover {
+      &:after {
+        content: "GlowCanClickedHover";
+      }
+    }
+
+    &:active {
+      &:after {
+        content: "GlowCanClickedActive";
+      }
     }
   }
 

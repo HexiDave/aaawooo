@@ -1,8 +1,8 @@
 @import "../colors";
 @import "../variables";
+@import "../button";
 
 $buttonSize: 24px;
-$buttonColor: #3b67d7;
 
 .root {
   margin: $mediumCardListMargin;
@@ -29,29 +29,8 @@ $buttonColor: #3b67d7;
   user-select: none;
 
   button {
-    font-family: 'Roboto', sans-serif;
-    font-weight: bold;
-    font-size: 16px;
-    line-height: 16px;
-    cursor: pointer;
-    color: white;
-    background-color: $buttonColor;
-    border: 0;
+    @include button();
     width: $buttonSize;
     height: $buttonSize;
-    border-radius: 4px;
-    transition: background-color 100ms;
-
-    &:hover {
-      background-color: lighten($buttonColor, 5%);
-    }
-
-    &:active {
-      background-color: darken($buttonColor, 5%);
-    }
-
-    &:focus {
-      outline: none;
-    }
   }
 }

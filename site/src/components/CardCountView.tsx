@@ -8,13 +8,13 @@ interface CardCountProps {
 	card: Card
 	count: number
 	isMaxed: boolean
+	isAlphaWolfClicked: boolean
 	onClick?: () => void
 	onIncrement: () => void
 	onDecrement: () => void
 }
 
-export default function CardCountView({card, count, isMaxed, onClick, onIncrement, onDecrement}: CardCountProps) {
-
+export default function CardCountView({card, count, isMaxed, isAlphaWolfClicked, onClick, onIncrement, onDecrement}: CardCountProps) {
 	return (
 		<div className={classes.root}>
 			<div className={classes.controlsCounter}>
@@ -40,7 +40,11 @@ export default function CardCountView({card, count, isMaxed, onClick, onIncremen
 			</div>
 			<CardView
 				card={card}
-				clickableState={onClick ? ClickableState.Clickable : ClickableState.None}
+				clickableState={
+					onClick
+						? isAlphaWolfClicked ? ClickableState.Clicked : ClickableState.Clickable
+						: ClickableState.None
+				}
 				cardSize={CardSize.Medium}
 				clickMode={ClickMode.Glow}
 				selectionMode={count > 0 ? SelectionMode.Selected : SelectionMode.NotSelected}
