@@ -1,6 +1,6 @@
 import { CardCountState, DefaultCardCountState } from './CardCountState'
-import { Card } from './Card'
-import { NightRoleOrder, NightRoleOrderTypeOrNull } from './Roles'
+import { Card, OptionalCard } from './Card'
+import { NightRoleOrderTypeOrNull } from './Roles'
 
 export enum GamePhase {
 	None,
@@ -14,7 +14,7 @@ export enum GamePhase {
 
 export interface GameState {
 	cardCountState: CardCountState
-	deck: Card[]
+	deck: OptionalCard[]
 	phase: GamePhase
 	loneWolfEnabled: boolean
 	nightRole: NightRoleOrderTypeOrNull
@@ -22,7 +22,7 @@ export interface GameState {
 
 export const DefaultGameState: GameState = {
 	cardCountState: DefaultCardCountState,
-	deck: [] as Card[],
+	deck: [] as OptionalCard[],
 	phase: GamePhase.None,
 	loneWolfEnabled: true,
 	nightRole: null

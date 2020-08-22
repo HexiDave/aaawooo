@@ -1,5 +1,4 @@
-import { GameState } from '../../../common'
-import { BasePlayer } from './Player'
+import { BasePlayer, GameState } from '../../../common'
 
 export interface GameServerState {
 	gameState: GameState

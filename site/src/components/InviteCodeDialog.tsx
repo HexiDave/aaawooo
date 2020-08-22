@@ -51,6 +51,8 @@ export default function InviteCodeDialog({connectionStage, onSendInviteCode, ...
 				inputElem.focus()
 				inputElem.select()
 			}
+		} else if (connectionStage === ConnectionStage.Success) {
+			setInviteCode('')
 		}
 	}, [connectionStage])
 

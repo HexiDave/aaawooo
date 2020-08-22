@@ -1,3 +1,5 @@
+@import "colors";
+
 html, body {
   margin: 0;
   padding: 0;
@@ -6,4 +8,52 @@ html, body {
 
 * {
   box-sizing: border-box;
+
+  scrollbar-color: $scrollbarThumb $scrollbarTrack;
+
+  &::-webkit-scrollbar {
+    background-color: $scrollbarTrack;
+
+    &-track {
+      background-color: $scrollbarTrack;
+    }
+
+    &-thumb {
+      background-color: $scrollbarThumb;
+      &:hover {
+        background-color: lighten($scrollbarThumb, 20%);
+      }
+    }
+
+    &-button:single-button {
+      display: block;
+      height: 24px;
+      background-color: $scrollbarThumb;
+      border: 2px solid lighten($scrollbarTrack, 20%);
+
+      &:hover {
+        background-color: lighten($scrollbarThumb, 20%);
+      }
+
+      &:vertical {
+        &:increment {
+          border-bottom-width: 0;
+        }
+
+        &:decrement {
+          border-top-width: 0;
+        }
+      }
+
+      &:horizontal {
+        &:increment {
+          border-left-width: 0;
+        }
+
+        &:decrement {
+          border-right-width: 0;
+        }
+      }
+    }
+  }
 }

@@ -12,7 +12,9 @@ export enum GameEvent {
 	PlayerReady,
 	RequestStart,
 	ValidationError,
-	ShowPlayersOtherRoles
+	ShowPlayersOtherRoles,
+	StartNightRoleAction,
+	NightRoleAction,
 }
 
 export const getGameEventName = (gameEvent: GameEvent) => GameEvent[gameEvent]
@@ -23,3 +25,5 @@ export interface ShowPlayersOtherRolesPacketItem {
 }
 
 export type ShowPlayersOtherRolesPacket = ShowPlayersOtherRolesPacketItem[]
+
+export const END_ROLE_ACTION = -1

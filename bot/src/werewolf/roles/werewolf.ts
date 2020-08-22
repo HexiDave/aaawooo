@@ -1,32 +1,16 @@
-import { GameServer } from '../GameServer'
+import { DEFAULT_ROLE_END_PAUSE, GameServer } from '../GameServer'
 import { RoleEventGenerator } from '../RoleEventFuncType'
-import { Card, GameEvent, getGameEventName, ShowPlayersOtherRolesPacket } from '../../../../common'
-
-const ROLE = 'werewolf'
-
-const delay = (delay: number) => new Promise<void>(res => setTimeout(res, delay))
-
-const playTrack = (gameServer: GameServer, trackName: string, trackTime: number, fallbackDelay: number) => {
-	gameServer.playTrack(trackName)
-
-	delay(trackTime).then(() => gameServer.onTrackFinished(trackName))
-
-	return fallbackDelay
-}
-
-const dummyMessage = (message: string, delay: number) => {
-	console.log(message)
-
-	return delay
-}
+import {
+	Card,
+	GameEvent,
+	getGameEventName,
+	NightRoleOrderType,
+	ShowPlayersOtherRolesPacket,
+	WerewolfCardArray
+} from '../../../../common'
 
 function showPlayerWerewolves(gameServer: GameServer) {
-	const werewolfPlayers = gameServer.getPlayersWithStartingCards([
-		Card.Werewolf,
-		Card.AlphaWolf,
-		Card.MysticWolf,
-		Card.DreamWolf
-	])
+	const werewolfPlayers = gameServer.getPlayersWithStartingCards(WerewolfCardArray)
 
 	console.debug('Werewolf players', werewolfPlayers)
 
@@ -48,14 +32,17 @@ function showPlayerWerewolves(gameServer: GameServer) {
 		}
 	}
 
+	// TODO: Lone wolf option role action
+
 	return 5000
 }
 
-export function* werewolfRole(gameServer: GameServer): RoleEventGenerator {
-	yield gameServer.playRoleWakeUp(ROLE)
+export function* werewolfRole(role: NightRoleOrderType, gameServer: GameServer): RoleEventGenerator {
+	yield gameServer.playRoleWakeUp(role)
 	yield showPlayerWerewolves(gameServer)
-	yield gameServer.playRoleCloseEyes(ROLE)
-	yield dummyMessage('Done werewolf role', 1000)
+	yield gameServer.sendEndRoleActionToAll(role)
 
-	return
+	yield gameServer.playRoleCloseEyes(role)
+
+	return yield DEFAULT_ROLE_END_PAUSE
 }

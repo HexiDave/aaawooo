@@ -1,0 +1,31 @@
+@import "../colors";
+@import "../button";
+
+.root {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.controls {
+  background: $barBackgroundColor;
+  border-bottom: 3px solid $barBorderColor;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+
+  button {
+    margin: 8px;
+
+    @include button;
+    font-weight: normal;
+    padding: 8px;
+  }
+
+  .clock {
+    margin: 8px 16px;
+    color: darkorange;
+    font-weight: bold;
+    font-size: 1.1em;
+  }
+}

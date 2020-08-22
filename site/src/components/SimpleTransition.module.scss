@@ -1,0 +1,35 @@
+.root {
+  animation-duration: 300ms;
+  animation-fill-mode: both;
+  animation-timing-function: ease-in-out;
+
+  &.slideAndFadeIn {
+    animation-name: slideAndFadeIn;
+  }
+
+  &.slideAndFadeOut {
+    animation-name: slideAndFadeOut;
+  }
+}
+
+@keyframes slideAndFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideAndFadeOut {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-100%);
+  }
+}

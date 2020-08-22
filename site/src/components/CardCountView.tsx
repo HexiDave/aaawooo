@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import clsx from 'clsx'
 import { Card } from '../../../common'
-import CardView, { ActivationMode, CardSize, ClickableState, ClickMode } from './CardView'
+import CardView, { ActiveMode, CardSize, ClickableState, ClickMode } from './CardView'
 import classes from './CardCountView.module.scss'
 
 interface CardCountProps {
@@ -63,7 +63,7 @@ export default function CardCountView({card, count, isMaxed, isAlphaWolfClicked,
 					}
 					cardSize={CardSize.Mini}
 					clickMode={ClickMode.Tagged}
-					selectionMode={count > 0 ? ActivationMode.Activate : ActivationMode.Inactive}
+					activeMode={count > 0 ? ActiveMode.Activate : ActiveMode.Inactive}
 					onClick={onClick}
 				/>
 

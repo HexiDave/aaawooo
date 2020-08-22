@@ -6,7 +6,7 @@ $buttonSize: 24px;
 $alphaWolfButtonColor: #1d9808;
 
 .root {
-  margin: $mediumCardListMargin;
+  margin: $mediumCardListMarginHeight $mediumCardListMarginWidth;
   width: $mediumCardWidth;
   position: relative;
 }

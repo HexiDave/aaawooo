@@ -40,3 +40,23 @@
   background: radial-gradient(rgba(#fff, 0.6) 0%, rgba(#fff, 0.4) 30%, rgba(#fff, 0.0) 80%);
   border-radius: 50%;
 }
+
+.playerRoot {
+  text-align: center;
+  transform: translateY(0);
+  transition: transform 250ms ease-in-out;
+
+  &.hidePlayer {
+    transform: translateY(150px);
+    transition-delay: 0.2s;
+  }
+}
+
+.cardRoot {
+  transform: translateY(0);
+  transition: transform 500ms ease-in-out;
+
+  &.hideCard {
+    transform: translateY(300px);
+  }
+}

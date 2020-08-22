@@ -16,8 +16,8 @@ export const DefaultCardCountState: CardCountState = {
 	mason: 0,
 	minion: 0,
 	mysticWolf: 0,
-	pi: 0,
-	revealer: 0,
+	// pi: 0,
+	// revealer: 0,
 	robber: 0,
 	seer: 0,
 	troublemaker: 0,
@@ -103,6 +103,12 @@ export function buildDeckFromCardCountState(state: CardCountState): Card[] {
 	})
 
 	return deck
+}
+
+export function getDeckSizeFromCardCountState(state: CardCountState): number {
+	const baseDeck = buildDeckFromCardCountState(state)
+
+	return baseDeck.length + (state.alphaWolfCard === 'none' ? 0 : 1)
 }
 
 export function prepareDeckForGame(state: CardCountState, deck: Card[]): Card[] {

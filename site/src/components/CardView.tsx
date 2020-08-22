@@ -22,7 +22,7 @@ export enum CardSize {
 	Normal
 }
 
-export enum ActivationMode {
+export enum ActiveMode {
 	None,
 	Activate,
 	Inactive
@@ -39,19 +39,21 @@ const FLIP_TIMEOUT = 200
 interface CardViewProps {
 	card: OptionalCard
 	clickableState: ClickableState
+	rootClassName?: string
 	onClick?: () => void
 	cardSize?: CardSize
 	clickMode?: ClickMode
-	selectionMode?: ActivationMode
+	activeMode?: ActiveMode
 }
 
 export default function CardView({
 	card,
 	clickableState,
+	rootClassName,
 	onClick,
 	cardSize = CardSize.Normal,
 	clickMode = ClickMode.Normal,
-	selectionMode = ActivationMode.None
+	activeMode = ActiveMode.None
 }: CardViewProps) {
 	const cachedCardRef = useRef<OptionalCard>(card)
 	const [flipState, setFlipState] = useState<FlipState>(FlipState.None)
@@ -59,6 +61,8 @@ export default function CardView({
 
 	useEffect(() => {
 		const cachedCard = cachedCardRef.current
+
+		console.debug('CardView [card, cachedCard]', card, cachedCard)
 
 		if (card !== cachedCard) {
 			cachedCardRef.current = card
@@ -98,13 +102,13 @@ export default function CardView({
 
 	return (
 		<div
-			className={clsx(classes.root, cardClass, {
+			className={clsx(classes.root, cardClass, rootClassName, {
 				[classes.mini]: cardSize === CardSize.Mini,
 				[classes.flipping]: flipState !== FlipState.None,
 				[classes.flipIn]: flipState === FlipState.FlipIn,
 				[classes.flipOut]: flipState === FlipState.FlipOut,
-				[classes.active]: selectionMode === ActivationMode.Activate,
-				[classes.inactive]: selectionMode === ActivationMode.Inactive,
+				[classes.active]: activeMode === ActiveMode.Activate,
+				[classes.inactive]: activeMode === ActiveMode.Inactive,
 			})}
 		>
 			<div

@@ -9,7 +9,7 @@ export const NightRoleOrder = [
 	Card.Mason,
 	Card.Seer,
 	Card.ApprenticeSeer,
-	Card.ParanormalInvestigator,
+	// Card.ParanormalInvestigator,
 	Card.Robber,
 	Card.Witch,
 	Card.Troublemaker,

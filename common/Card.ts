@@ -1,6 +1,6 @@
 export enum Card {
-	Werewolf = 'werewolf',
 	AlphaWolf = 'alphaWolf',
+	Werewolf = 'werewolf',
 	DreamWolf = 'dreamWolf',
 	MysticWolf = 'mysticWolf',
 	Villager = 'villager',
@@ -12,9 +12,9 @@ export enum Card {
 	Witch = 'witch',
 	Troublemaker = 'troublemaker',
 	VillageIdiot = 'vIdiot',
-	ParanormalInvestigator = 'pi',
+	// ParanormalInvestigator = 'pi',
 	Insomniac = 'insomniac',
-	Revealer = 'revealer',
+	// Revealer = 'revealer',
 	Drunk = 'drunk'
 }
 
@@ -30,3 +30,10 @@ export const AlphaWolfCardArray: AlphaWolfCards[] = [
 ]
 
 export const CardArray = Object.values(Card)
+
+export const WerewolfCardArray = [
+	Card.Werewolf,
+	Card.AlphaWolf,
+	Card.MysticWolf,
+	Card.DreamWolf
+]

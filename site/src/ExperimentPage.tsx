@@ -1,12 +1,26 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react'
 import GameStage from './components/GameStage'
 import PlayerList from './components/PlayerList'
-import { AlphaWolfCards, Card, DefaultCardCountState, OptionalCard, Timer } from '../../common'
+import {
+	AlphaWolfCards,
+	BasePlayer,
+	buildDeckFromCardCountState,
+	Card,
+	CardCountState,
+	DefaultCardCountState,
+	DefaultGameState,
+	GameState,
+	OptionalCard,
+	prepareDeckForGame,
+	Timer
+} from '../../common'
 import cloneDeep from 'lodash/cloneDeep'
 import CardCountList from './components/CardCountList'
 import InviteCodeDialog from './components/InviteCodeDialog'
 import { ConnectionStage } from './SocketContextProvider'
 import Loader from './components/Loader'
+import ActivityView from './components/ActivityView'
+import classes from './ExperimentPage.module.scss'
 
 const fakeUsers = Array.from({length: 8}).map(() => null)
 const playerCards: OptionalCard[] = [
@@ -16,22 +30,64 @@ const playerCards: OptionalCard[] = [
 	Card.Villager,
 	Card.Villager,
 	Card.Insomniac,
-	Card.ParanormalInvestigator,
+	Card.Troublemaker,
 	Card.Seer
 ]
 const clickableUsers: number[] = [0, 3, 7]
 const isShowingClickable = clickableUsers.length > 0
 const validInviteCode = '111111'
+const fakePlayer: BasePlayer = {
+	userDetails: null,
+	startingCard: Card.MysticWolf,
+	history: []
+}
+const demoCardCounts: Partial<CardCountState> = {
+	alphaWolfCard: Card.MysticWolf,
+	villager: 3,
+	insomniac: 1,
+	werewolf: 2,
+	mason: 2,
+	robber: 1,
+	seer: 1,
+	alphaWolf: 1
+}
+
+const demoCardCountState = {
+	...cloneDeep(DefaultCardCountState),
+	...demoCardCounts
+}
+
+const demoDeck = (() => {
+	const baseDeck = buildDeckFromCardCountState(demoCardCountState)
+
+	return prepareDeckForGame(demoCardCountState, baseDeck)
+})()
+
+const demoGameState: GameState = {
+	...cloneDeep(DefaultGameState),
+	cardCountState: demoCardCountState,
+	deck: demoDeck
+}
+
+const SHOW_LOADER_INVITE = false
+const SHOW_PLAYER_LIST = true
+const SHOW_CARD_COUNTS = true
+const SHOW_TEST_CONTROLS = true
+const SHOW_ACTIVITY_VIEW = true
 
 export default function ExperimentPage() {
 	const timerRef = useRef<Timer>()
+	const clockElemRef = useRef<HTMLDivElement>(null)
 
 	const [shownCards, setShownCards] = useState<OptionalCard[]>(fakeUsers.map(_ => null))
 	const [isNight, setIsNight] = useState(false)
 	const [canChangeCycle, setCanChangeCycle] = useState(true)
-	const [cardCountState, setCardCountState] = useState(cloneDeep(DefaultCardCountState))
+	const [gameState, setGameState] = useState(cloneDeep(demoGameState))
 	const [connectionStage, setConnectionStage] = useState<ConnectionStage>(ConnectionStage.None)
 	const [isLoading, setIsLoading] = useState(true)
+	const [areCardsVisible, setAreCardsVisible] = useState(false)
+	const [isCardCountVisible, setIsCardCountVisible] = useState(false)
+	const [isActivityVisible, setIsActivityVisible] = useState(true)
 
 	const handleCardClick = (index: number) => {
 		setShownCards(s => ([
@@ -43,7 +99,7 @@ export default function ExperimentPage() {
 
 	const handleClearClick = () => {
 		setShownCards(fakeUsers.map(_ => null))
-		setCardCountState(cloneDeep(DefaultCardCountState))
+		setGameState(cloneDeep(demoGameState))
 	}
 
 	const handleToggleDayNight = () => {
@@ -53,9 +109,9 @@ export default function ExperimentPage() {
 	}
 
 	const handleCardCountUpdate = useCallback((card: Card, count: number) => {
-		setCardCountState(s => {
-			const newState = {
-				...s,
+		setGameState(s => {
+			const newState: CardCountState = {
+				...s.cardCountState,
 				[card]: count
 			}
 
@@ -63,17 +119,25 @@ export default function ExperimentPage() {
 				newState.alphaWolfCard = 'none'
 			}
 
-			return newState
+			return {
+				...s,
+				cardCountState: newState
+			}
 		})
 	}, [])
 
 	const handleAlphaWolfCardChange = useCallback((card: Card) => {
-		setCardCountState(s => {
-			const alphaWolfCard = s.alphaWolfCard === card ? 'none' : card
+		setGameState(s => {
+			const {cardCountState} = s
+
+			const alphaWolfCard = cardCountState.alphaWolfCard === card ? 'none' : card
 
 			return ({
 				...s,
-				alphaWolfCard: alphaWolfCard as AlphaWolfCards
+				cardCountState: {
+					...cardCountState,
+					alphaWolfCard: alphaWolfCard as AlphaWolfCards
+				}
 			})
 		})
 	}, [])
@@ -93,19 +157,44 @@ export default function ExperimentPage() {
 		}, 1000)
 	}
 
+	const handleCreateDeck = () => {
+		setGameState(s => {
+			const {cardCountState} = s
+
+			const baseDeck = buildDeckFromCardCountState(cardCountState)
+
+			const deck = prepareDeckForGame(cardCountState, baseDeck)
+
+			return {
+				...s,
+				deck
+			}
+		})
+	}
+
 	useEffect(() => {
 		timerRef.current = new Timer(() => setCanChangeCycle(true))
 
-		const loaderTimout = setTimeout(() => {
+		const loaderTimeout = setTimeout(() => {
 			setIsLoading(false)
 		}, 5000)
 
+		const clockInterval = setInterval(() => {
+			const clockElem = clockElemRef.current
+
+			if (clockElem === null)
+				return
+
+			const now = new Date()
+
+			clockElem.innerHTML = now.toLocaleTimeString()
+		}, 500)
+
 		return () => {
-			clearTimeout(loaderTimout)
+			clearTimeout(loaderTimeout)
+			clearInterval(clockInterval)
 		}
 	}, [])
-
-	const showStuff = false
 
 	const loaderAndInviteDialog = (
 		<React.Fragment>
@@ -123,33 +212,70 @@ export default function ExperimentPage() {
 		</React.Fragment>
 	)
 
-	return (
-		<GameStage isNight={isNight}>
-			{showStuff && loaderAndInviteDialog}
+	return null
 
-			<div>
-				<button onClick={handleClearClick}>
-					Clear
-				</button>
-				<button onClick={handleToggleDayNight} disabled={!canChangeCycle}>
-					{isNight ? 'Day' : 'Night'}
-				</button>
-			</div>
+	/*return (
+		<div className={classes.root}>
+			{SHOW_TEST_CONTROLS && (
+				<div className={classes.controls}>
+					<div>
+						<button onClick={handleClearClick}>
+							Clear
+						</button>
+						<button onClick={handleToggleDayNight} disabled={!canChangeCycle}>
+							{isNight ? 'Day' : 'Night'}
+						</button>
+						<button onClick={() => setAreCardsVisible(s => !s)}>
+							{areCardsVisible ? 'Hide cards' : 'Show cards'}
+						</button>
+						<button onClick={() => setIsCardCountVisible(s => !s)}>
+							{isCardCountVisible ? 'Hide counts' : 'Show counts'}
+						</button>
+						<button onClick={() => setIsActivityVisible(s => !s)}>
+							{isActivityVisible ? 'Hide activity' : 'Show activity'}
+						</button>
+						<button onClick={handleCreateDeck}>
+							Create deck
+						</button>
+					</div>
 
-			<CardCountList
-				playerCount={fakeUsers.length}
-				cardCountState={cardCountState}
-				onUpdateCardCount={handleCardCountUpdate}
-				onUpdateAlphaWolfCardChange={handleAlphaWolfCardChange}
-			/>
+					<div className={classes.clock} ref={clockElemRef}>
+						4:00am
+					</div>
+				</div>
+			)}
+			<GameStage isNight={isNight}>
+				{SHOW_LOADER_INVITE && loaderAndInviteDialog}
 
-			<PlayerList
-				userDetailsList={fakeUsers}
-				clickableUsers={clickableUsers}
-				isShowingClickable={isShowingClickable}
-				shownCards={shownCards}
-				onCardClick={handleCardClick}
-			/>
-		</GameStage>
-	)
+				{SHOW_CARD_COUNTS && (
+					<CardCountList
+						playerCount={fakeUsers.length}
+						cardCountState={gameState.cardCountState}
+						isShown={isCardCountVisible}
+						onUpdateCardCount={handleCardCountUpdate}
+						onUpdateAlphaWolfCardChange={handleAlphaWolfCardChange}
+					/>
+				)}
+
+				{SHOW_ACTIVITY_VIEW && (
+					<ActivityView
+						isShown={!isCardCountVisible}
+						/!*player={fakePlayer}*!/
+						gameState={gameState}
+					/>
+				)}
+
+				{SHOW_PLAYER_LIST && (
+					<PlayerList
+						userDetailsList={fakeUsers}
+						clickableUsers={clickableUsers}
+						isShowingClickable={isShowingClickable}
+						areCardsVisible={areCardsVisible}
+						shownCards={shownCards}
+						onCardClick={handleCardClick}
+					/>
+				)}
+			</GameStage>
+		</div>
+	)*/
 }

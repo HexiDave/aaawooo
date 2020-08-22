@@ -88,10 +88,16 @@ export class GameServerManager {
 				}
 
 				const gameServer = this.getGameServer(userRoomDetails.roomId)
+				if (gameServer === null) {
+					socket.error('Room not found')
+					socket.disconnect(true)
+					return
+				}
+
 				const userDetails = gameServer.getUserDetailsById(userRoomDetails.userId)
 
 				if (userDetails === null) {
-					socket.error('User or room not found')
+					socket.error('User not found')
 					socket.disconnect(true)
 					return
 				}

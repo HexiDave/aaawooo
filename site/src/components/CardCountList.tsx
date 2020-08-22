@@ -13,6 +13,7 @@ import CardCountView from './CardCountView'
 import classes from './CardCountList.module.scss'
 import clsx from 'clsx'
 import { AlphaWolfCardNames } from '../cardNames'
+import SimpleTransition, { BaseTransitionProps } from './SimpleTransition'
 
 const CARD_UPDATE_DEBOUNCE = 200
 
@@ -21,14 +22,14 @@ interface CardCount {
 	count: number
 }
 
-interface CardCountListProps {
+interface CardCountListProps extends BaseTransitionProps {
 	playerCount: number
 	cardCountState: CardCountState
 	onUpdateCardCount: (card: Card, count: number) => void
 	onUpdateAlphaWolfCardChange: (card: Card) => void
 }
 
-export default function CardCountList({playerCount, cardCountState, onUpdateCardCount, onUpdateAlphaWolfCardChange}: CardCountListProps) {
+export default function CardCountList({playerCount, cardCountState, isShown, onUpdateCardCount, onUpdateAlphaWolfCardChange}: CardCountListProps) {
 	const timerRef = useRef<Timer>()
 	const cardCountRef = useRef<CardCount>()
 
@@ -102,7 +103,7 @@ export default function CardCountList({playerCount, cardCountState, onUpdateCard
 	}, [sendCardUpdate])
 
 	return (
-		<div className={classes.root}>
+		<SimpleTransition isShown={isShown} className={classes.root}>
 			<div className={classes.details}>
 				<div>Players: {playerCount}</div>
 				<div>Required cards: {requiredCardCount}</div>
@@ -152,6 +153,6 @@ export default function CardCountList({playerCount, cardCountState, onUpdateCard
 					/>
 				)
 			})}
-		</div>
+		</SimpleTransition>
 	)
 }

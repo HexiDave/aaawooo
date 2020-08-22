@@ -1,6 +1,6 @@
 import Discord, { Collection, Message, TextChannel } from 'discord.js'
 import { GameServerManager } from './GameServerManager'
-import { MAX_ROOM_SIZE, UserDetails } from '../../common'
+import { Card, CardArray, MAX_ROOM_SIZE, UserDetails } from '../../common'
 
 export type CommandFunc = (message: Message, ...args: any[]) => Promise<void>
 
@@ -86,13 +86,11 @@ export default class DiscordBot {
 		return channel
 	}
 
-	private openRoom = async (message: Message, roomSizeArg?: string) => {
+	private openRoom = async (message: Message, roomSizeArg?: string, debugStartingCard?: string) => {
 		const channel = await DiscordBot.getChannel(message, "Can't open the room without you being in a voice channel first!")
 
 		if (!channel)
 			return
-
-		// TODO: Send DMs with invite link, report room size, make funny sounds, etc
 
 		let gameServer = this.gameServerManager.getGameServer(channel.id)
 
@@ -133,6 +131,10 @@ export default class DiscordBot {
 		}
 
 		gameServer = this.gameServerManager.createGameServer(channel.id, connection)
+
+		if (debugStartingCard) {
+			gameServer.__DEBUG_START_CARD = CardArray.find(c => c.toLowerCase() === debugStartingCard.toLowerCase())
+		}
 
 		gameServer.initializePlayers(userDetailsList)
 

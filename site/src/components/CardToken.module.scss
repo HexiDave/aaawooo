@@ -1,0 +1,46 @@
+$cards: "alphaWolf", "appSeer", "dreamWolf", "drunk", "hunter", "insomniac", "mason", "minion", "mysticWolf", "pi", "revealer", "robber", "seer", "tanner", "troublemaker", "vIdiot", "villager", "werewolf", "witch";
+
+$cardSize: 64px;
+$cardInnerSize: 0.9 * $cardSize;
+$cardMargin: 0.5 * ($cardSize - $cardInnerSize);
+
+.root {
+  width: $cardSize;
+  height: $cardSize;
+  border-radius: 50%;
+  border: 2px solid black;
+  background: #282c34 no-repeat center;
+  background-size: contain;
+  position: relative;
+  box-sizing: content-box;
+
+  svg {
+    width: $cardInnerSize;
+    height: $cardInnerSize;
+    margin: $cardMargin;
+  }
+
+  text {
+    fill: white;
+    font-weight: bold;
+    font-size: 3em;
+    text-shadow: 0 0 6px rgba(0, 0, 0, 0.75);
+  }
+
+  @each $card in $cards {
+    &.card-#{$card} {
+      background-image: url("../../images/cards/#{$card}.png");
+    }
+  }
+}
+
+.count {
+  position: absolute;
+  width: 100%;
+  text-align: center;
+  bottom: $cardMargin;
+  font-weight: bold;
+  font-size: 1.2em;
+  color: white;
+  text-shadow: 0 0 6px rgba(0, 0, 0, 0.75);
+}
