@@ -1,5 +1,6 @@
 import React from 'react'
 import {
+	AlphaWolfCards,
 	Card,
 	DefaultGameState,
 	END_ROLE_ACTION,
@@ -60,7 +61,7 @@ export default class GameView extends React.Component<GameViewProps, GameViewSta
 		})
 	}
 
-	private setCardCountState = (card: Card, count: number) => {
+	private setCardCount = (card: Card, count: number) => {
 		const {gameState} = this.state
 		this.setState({
 			gameState: {
@@ -68,6 +69,21 @@ export default class GameView extends React.Component<GameViewProps, GameViewSta
 				cardCountState: {
 					...gameState.cardCountState,
 					[card]: count
+				}
+			}
+		})
+	}
+
+	private setAlphaWolfCard = (alphaWolfCard: AlphaWolfCards) => {
+		const {gameState} = this.state
+		const {cardCountState} = gameState
+
+		this.setState({
+			gameState: {
+				...gameState,
+				cardCountState: {
+					...cardCountState,
+					alphaWolfCard
 				}
 			}
 		})
@@ -112,53 +128,63 @@ export default class GameView extends React.Component<GameViewProps, GameViewSta
 		this.props.socket?.emit(getGameEventName(GameEvent.NightRoleAction), playerRole, index)
 	}
 
-	private handlePlayerCardClick = (index: number) => {
+	private handleCardClick = (index: number) => {
 		const {playerRole, cardClickBuffer, clickablePlayers} = this.state
 
-		if (playerRole === Card.Troublemaker) {
-			if (cardClickBuffer.length === 0) {
-				this.setState({
-					cardClickBuffer: [index],
-					clickablePlayers: clickablePlayers.filter(playerIndex => playerIndex !== index)
-				})
+		switch (playerRole) {
+			case Card.Troublemaker:
+				if (cardClickBuffer.length === 0) {
+					this.setState({
+						cardClickBuffer: [index],
+						clickablePlayers: clickablePlayers.filter(playerIndex => playerIndex !== index)
+					})
 
-				// Don't send the action yet
-				return
-			} else {
-				this.props.socket?.emit(getGameEventName(GameEvent.NightRoleAction), playerRole, cardClickBuffer[0], index)
+					// Don't send the action yet
+					return
+				} else {
+					this.props.socket?.emit(getGameEventName(GameEvent.NightRoleAction), playerRole, cardClickBuffer[0], index)
 
-				// Reset it
-				this.setState({
-					cardClickBuffer: [],
-					clickablePlayers: []
-				})
+					// Reset it
+					this.setState({
+						cardClickBuffer: [],
+						clickablePlayers: []
+					})
 
-				return
-			}
-		} else if (playerRole === Card.Seer) {
-			if (index < this.state.userDetailsList.length) {
+					return
+				}
+			case Card.Seer:
+				if (index < this.state.userDetailsList.length) {
+					// Reset it
+					this.setState({
+						cardClickBuffer: [],
+						clickablePlayers: [],
+						clickableMiddleCards: []
+					})
+				} else {
+					this.setState({
+						clickablePlayers: []
+					})
+				}
+				break
+			case Card.ApprenticeSeer:
 				// Reset it
 				this.setState({
 					cardClickBuffer: [],
 					clickablePlayers: [],
 					clickableMiddleCards: []
 				})
-			} else {
-				this.setState({
-					clickablePlayers: []
-				})
-			}
+				break
 		}
 
 		this.sendCardClickAction(index)
 	}
 
 	private handleMiddleCardClick = (index: number) => {
-		this.sendCardClickAction(index + this.state.userDetailsList.length)
+		this.handleCardClick(index + this.state.userDetailsList.length)
 	}
 
-	private handleAlphaWolfCardChange = (card: Card) => {
-
+	private handleAlphaWolfCardChange = (alphaWolfCard: AlphaWolfCards) => {
+		this.props.socket?.emit(getGameEventName(GameEvent.UpdateAlphaWolfCard), alphaWolfCard)
 	}
 
 	private setupSocket(socket: SocketIOClient.Socket) {
@@ -212,7 +238,11 @@ export default class GameView extends React.Component<GameViewProps, GameViewSta
 		setGameEventHandler(socket, GameEvent.UpdateCardCount, (card: Card, count: number) => {
 			console.debug('Card update', card, count)
 
-			this.setCardCountState(card, count)
+			this.setCardCount(card, count)
+		})
+
+		setGameEventHandler(socket, GameEvent.UpdateAlphaWolfCard, (alphaWolfCard: AlphaWolfCards) => {
+			this.setAlphaWolfCard(alphaWolfCard)
 		})
 
 		setGameEventHandler(socket, GameEvent.ValidationError, (validationResult: ValidationResult) => {
@@ -279,9 +309,9 @@ export default class GameView extends React.Component<GameViewProps, GameViewSta
 			})
 
 			switch (playerRole) {
+				case Card.Troublemaker:
+				case Card.Robber:
 				case Card.AlphaWolf:
-					this.setOtherPlayersClickable()
-					break
 				case Card.MysticWolf:
 					this.setOtherPlayersClickable()
 					break
@@ -289,22 +319,12 @@ export default class GameView extends React.Component<GameViewProps, GameViewSta
 					this.setOtherPlayersClickable()
 					this.setMiddleCardsClickable()
 					break
+				case Card.Drunk:
+				case Card.Witch:
 				case Card.ApprenticeSeer:
 					this.setMiddleCardsClickable()
 					break
-				case Card.Robber:
-					this.setOtherPlayersClickable()
-					break
-				case Card.Witch:
-					this.setMiddleCardsClickable()
-					break
-				case Card.Troublemaker:
-					this.setOtherPlayersClickable()
-					break
 				case Card.VillageIdiot:
-					break
-				case Card.Drunk:
-					this.setMiddleCardsClickable()
 					break
 			}
 		})
@@ -373,7 +393,7 @@ export default class GameView extends React.Component<GameViewProps, GameViewSta
 					isShowingClickable={clickablePlayers.length > 0}
 					areCardsVisible={gameState.phase > GamePhase.Setup}
 					shownCards={gameState.deck}
-					onCardClick={this.handlePlayerCardClick}
+					onCardClick={this.handleCardClick}
 				/>
 			</GameStage>
 		)

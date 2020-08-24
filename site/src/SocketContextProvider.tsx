@@ -7,6 +7,7 @@ const WEREWOLF_REFRESH_CODE_KEY = 'werewolfRefreshCode'
 export enum ConnectionStage {
 	None,
 	Connecting,
+	Reconnecting,
 	Success,
 	Error
 }
@@ -38,23 +39,26 @@ export default function SocketContextProvider({children}: PropsWithChildren<{}>)
 
 	const setupSocket = (socket: SocketIOClient.Socket) => {
 		socket.on('connect', () => {
-			console.log('Connected')
+			console.debug('Connected')
 		})
 
 		socket.on('reconnect_attempt', () => {
-			console.log('Reconnect attempted')
 			const refreshCode = localStorage.getItem(WEREWOLF_REFRESH_CODE_KEY)
 			socket.io.opts.query = {
 				refreshCode
 			} as HandshakeQuery
 		})
 
+		socket.on('reconnecting', () => {
+			setConnectionStage(ConnectionStage.Reconnecting)
+		})
+
 		socket.on('reconnect', () => {
-			console.log('Reconnected')
+			console.debug('Reconnected')
 		})
 
 		socket.on('message', (msg: string) => {
-			console.log('Got message', msg)
+			console.debug('Got message', msg)
 		})
 
 		socket.on('error', (msg: string) => {
@@ -63,14 +67,16 @@ export default function SocketContextProvider({children}: PropsWithChildren<{}>)
 		})
 
 		socket.on(getCommonMessageName(CommonMessage.RefreshCode), (refreshCode: string) => {
-			console.log('Got refresh code', refreshCode)
+			console.debug('Got refresh code', refreshCode)
 			setConnectionStage(ConnectionStage.Success)
 			localStorage.setItem(WEREWOLF_REFRESH_CODE_KEY, refreshCode)
 		})
 
-		socket.on('disconnect', () => {
-			console.error('Disconnected')
-			setConnectionStage(ConnectionStage.None)
+		socket.on('disconnect', (reason: string) => {
+			console.error('Disconnected', reason)
+			if (reason === 'io server disconnect') {
+				setConnectionStage(ConnectionStage.None)
+			}
 		})
 
 		setSocket(socket)

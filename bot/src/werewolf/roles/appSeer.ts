@@ -30,7 +30,7 @@ export function* appSeerRole(role: NightRoleOrderType, gameServer: GameServer): 
 export function appSeerRoleAction(player: Player, gameServer: GameServer, deckIndex: number) {
 	const {deck} = gameServer.gameState
 
-	if (deckIndex >= deck.length || deckIndex <= gameServer.playerCount)
+	if (deckIndex >= deck.length || deckIndex < gameServer.playerCount)
 		return
 
 	player.roleState = 0

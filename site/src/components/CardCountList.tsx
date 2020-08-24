@@ -26,7 +26,7 @@ interface CardCountListProps extends BaseTransitionProps {
 	playerCount: number
 	cardCountState: CardCountState
 	onUpdateCardCount: (card: Card, count: number) => void
-	onUpdateAlphaWolfCardChange: (card: Card) => void
+	onUpdateAlphaWolfCardChange: (card: AlphaWolfCards) => void
 }
 
 export default function CardCountList({playerCount, cardCountState, isShown, onUpdateCardCount, onUpdateAlphaWolfCardChange}: CardCountListProps) {
@@ -68,6 +68,26 @@ export default function CardCountList({playerCount, cardCountState, isShown, onU
 
 		cardCountRef.current = {card, count}
 		timerRef.current?.start(CARD_UPDATE_DEBOUNCE)
+
+		// Handle the alpha wolf card if zeroed out
+		if (card === Card.AlphaWolf && count === 0) {
+			updateAlphaWolfCard('none')
+		}
+	}
+
+	const updateAlphaWolfCard = (alphaWolfCard: AlphaWolfCards) => {
+		setCardCounts(s => ({
+			...s,
+			alphaWolfCard
+		}))
+
+		onUpdateAlphaWolfCardChange(alphaWolfCard)
+	}
+
+	const handleAlphaWolfCardClick = (card: Card) => () => {
+		const alphaWolfCard = cardCountState.alphaWolfCard === card ? 'none' : card as AlphaWolfCards
+
+		updateAlphaWolfCard(alphaWolfCard)
 	}
 
 	const handleIncrement = (card: Card) => () => {
@@ -138,7 +158,6 @@ export default function CardCountList({playerCount, cardCountState, isShown, onU
 				const isMaxed = count === getCardLimit(card)
 				const canClick = hasAlphaWolf && AlphaWolfCardArray.includes(card as AlphaWolfCards)
 				const isAlphaWolfClicked = cardCounts.alphaWolfCard === card
-				const handleClick = () => onUpdateAlphaWolfCardChange(card)
 
 				return (
 					<CardCountView
@@ -147,7 +166,7 @@ export default function CardCountList({playerCount, cardCountState, isShown, onU
 						count={count}
 						isMaxed={isMaxed}
 						isAlphaWolfClicked={isAlphaWolfClicked}
-						onClick={canClick ? handleClick : undefined}
+						onClick={canClick ? handleAlphaWolfCardClick(card) : undefined}
 						onIncrement={handleIncrement(card)}
 						onDecrement={handleDecrement(card)}
 					/>

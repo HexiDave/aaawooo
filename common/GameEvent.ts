@@ -4,6 +4,7 @@ export enum GameEvent {
 	UpdateGameState,
 	PhaseChange,
 	UpdateCardCount,
+	UpdateAlphaWolfCard,
 	UpdatePlayers,
 	ShowOwnCard,
 	UpdatePlayerHistory,
@@ -15,6 +16,7 @@ export enum GameEvent {
 	ShowPlayersOtherRoles,
 	StartNightRoleAction,
 	NightRoleAction,
+	SetDeliberationTimer
 }
 
 export const getGameEventName = (gameEvent: GameEvent) => GameEvent[gameEvent]

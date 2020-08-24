@@ -2,7 +2,7 @@
   "name": "bot",
   "version": "0.0.0",
   "description": "Werewolf Bot",
-  "main": "src/server.ts",
+  "main": "src/boot.ts",
   "author": "hexidave@gmail.com",
   "license": "MIT",
   "dependencies": {
@@ -31,6 +31,6 @@
   },
   "scripts": {
     "dev": "ts-node-dev --respawn --transpile-only src/boot.ts",
-    "build": "tsc"
+    "build": "tsc -b ."
   }
 }

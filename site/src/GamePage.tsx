@@ -4,6 +4,7 @@ import { ConnectionStage, useSocket } from './SocketContextProvider'
 import { GameEvent, getGameEventName } from '../../common'
 import InviteCodeDialog from './components/InviteCodeDialog'
 import GameView from './components/GameView'
+import Dialog from './components/Dialog'
 
 export default function GamePage() {
 	const clockElemRef = useRef<HTMLDivElement>(null)
@@ -38,10 +39,14 @@ export default function GamePage() {
 	return (
 		<div className={classes.root}>
 			<InviteCodeDialog
-				isOpen={connectionStage !== ConnectionStage.Success}
+				isOpen={connectionStage === ConnectionStage.None || connectionStage === ConnectionStage.Connecting}
 				connectionStage={connectionStage}
 				onSendInviteCode={loginWithInviteCode}
 			/>
+
+			<Dialog isOpen={connectionStage === ConnectionStage.Reconnecting}>
+				<h2>Reconnecting</h2>
+			</Dialog>
 
 			<div className={classes.controls}>
 				<div>

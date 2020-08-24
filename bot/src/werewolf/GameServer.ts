@@ -2,6 +2,7 @@ import fs from 'fs'
 import path from 'path'
 import cloneDeep from 'lodash/cloneDeep'
 import {
+	AlphaWolfCards,
 	BasePlayer,
 	buildDeckFromCardCountState,
 	Card,
@@ -13,11 +14,13 @@ import {
 	getGameEventName,
 	getNextNightRole,
 	isDeckValid,
-	NightRoleOrderType, OptionalCard,
+	NightRoleOrderType,
+	OptionalCard,
 	PlayerEvent,
 	PlayerEventType,
 	prepareDeckForGame,
 	Timer,
+	updateAlphaWolfCard,
 	updateCardCount,
 	UserDetails
 } from '../../../common'
@@ -40,9 +43,10 @@ import { robberRole, robberRoleAction } from './roles/robber'
 import { troublemakerRole, troublemakerRoleAction } from './roles/troublemaker'
 
 export const DEFAULT_FALLBACK_DELAY = 30_000
-export const DEFAULT_ROLE_DURATION = 3_000
+export const DEFAULT_ROLE_DURATION = 5_000
 export const DEFAULT_ROLE_RESET_PAUSE = 500
 export const DEFAULT_ROLE_END_PAUSE = 2_000
+export const DELIBERATION_TIMER = 60 * 5 * 1_000
 
 type RoleActionFunction = (player: Player, gameServer: GameServer, ...args: any) => void
 
@@ -61,12 +65,25 @@ function* dayGenerator(gameServer: GameServer): RoleEventGenerator {
 
 	yield gameServer.playRoleWakeUp('everyone')
 
-	console.log('TODO: Start wind-down pause')
 	yield DEFAULT_ROLE_END_PAUSE
 
 	gameServer.updateGamePhase(GamePhase.Deliberation)
 
-	return yield DEFAULT_ROLE_END_PAUSE
+	yield DEFAULT_ROLE_END_PAUSE
+}
+
+function* deliberationGenerator(gameServer: GameServer): RoleEventGenerator {
+	gameServer.sendGameEvent(GameEvent.SetDeliberationTimer, DELIBERATION_TIMER)
+
+	yield DELIBERATION_TIMER
+
+	gameServer.playTrack(GameServer.buildRoleTrackName('everyone', 'timeisup_321vote'))
+
+	yield 5_000
+
+	gameServer.updateGamePhase(GamePhase.Vote)
+
+	yield DEFAULT_ROLE_RESET_PAUSE
 }
 
 export class GameServer {
@@ -163,7 +180,7 @@ export class GameServer {
 			.on('reconnecting', () => console.log('Attempting to re-connect voice'))
 	}
 
-	private sendGameEvent(gameEvent: GameEvent, ...args: any[]) {
+	public sendGameEvent(gameEvent: GameEvent, ...args: any[]) {
 		this.server.emit(getGameEventName(gameEvent), ...args)
 	}
 
@@ -246,6 +263,7 @@ export class GameServer {
 	public updateGamePhase(phase: GamePhase) {
 		this.gameState.phase = phase
 		this.sendGameEvent(GameEvent.PhaseChange, phase)
+		this.storeGameServerState()
 	}
 
 	private updateNightRole(role: NightRoleOrderType) {
@@ -274,6 +292,9 @@ export class GameServer {
 	}
 
 	private activateGenerator() {
+		if (!this.generator)
+			return
+
 		const current = this.generator.next()
 
 		if (current.done === false) {
@@ -331,7 +352,17 @@ export class GameServer {
 		if (nightRole !== null) {
 			this.updateNightRole(nightRole)
 		} else {
-			this.generator = nightStartGenerator(this)
+			switch (this.gameState.phase) {
+				case GamePhase.Night:
+					this.generator = nightStartGenerator(this)
+					break
+				case GamePhase.Day:
+					this.generator = dayGenerator(this)
+					break
+				case GamePhase.Deliberation:
+					this.generator = deliberationGenerator(this)
+					break
+			}
 			this.activateGenerator()
 		}
 	}
@@ -481,6 +512,20 @@ export class GameServer {
 		}
 	}
 
+	public updateAlphaWolfCard(alphaWolfCard: AlphaWolfCards) {
+		const {cardCountState} = this.gameState
+
+		const originalAlphaWolfCard = cardCountState.alphaWolfCard
+
+		this.gameState.cardCountState = updateAlphaWolfCard(cardCountState, alphaWolfCard)
+
+		// Send if different
+		if (originalAlphaWolfCard !== alphaWolfCard) {
+			this.sendGameEvent(GameEvent.UpdateAlphaWolfCard, alphaWolfCard)
+			this.storeGameServerState()
+		}
+	}
+
 	public getNextNightRoleInDeck() {
 		let nextNightRole = getNextNightRole(this.gameState.nightRole)
 
@@ -614,9 +659,12 @@ export class GameServer {
 
 	public activateNextSequence() {
 		if (this.gameState.phase === GamePhase.Deliberation) {
-			console.debug('Deliberation sequence')
-			this.generator = null
+			this.generator = deliberationGenerator(this)
 			this.gameState.nightRole = null
+			this.storeGameServerState()
+			return
+		} else if (this.gameState.phase === GamePhase.Vote) {
+			this.generator = null
 			this.storeGameServerState()
 			return
 		}

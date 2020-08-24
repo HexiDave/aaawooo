@@ -62,8 +62,6 @@ export default function CardView({
 	useEffect(() => {
 		const cachedCard = cachedCardRef.current
 
-		console.debug('CardView [card, cachedCard]', card, cachedCard)
-
 		if (card !== cachedCard) {
 			cachedCardRef.current = card
 			setFlipState(FlipState.FlipIn)

@@ -35,7 +35,7 @@
   height: 100%;
   z-index: 1500;
 
-  background: url("../../images/landscape.svg") no-repeat bottom;
+  background: url("../images/landscape.svg") no-repeat bottom;
   background-size: contain;
   pointer-events: none;
 }
@@ -46,7 +46,7 @@
   right: 0;
   height: 100%;
   z-index: 1501;
-  background: url(../../images/wall.png) no-repeat bottom;
+  background: url(../images/wall.png) no-repeat bottom;
   background-size: auto 320px;
   pointer-events: none;
 }
@@ -61,8 +61,8 @@
   background-blend-mode: multiply;
   opacity: 0;
 
-  background: url(../../images/stars.png) repeat top center,
-  url(../../images/twinkling.png) repeat top center;
+  background: url(../images/stars.png) repeat top center,
+  url(../images/twinkling.png) repeat top center;
 
   animation-name: starsTwinkle;
   animation-duration: 100s, 10s;

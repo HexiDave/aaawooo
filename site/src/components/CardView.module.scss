@@ -4,11 +4,11 @@
   .#{$pathName} {
     .cardFace {
       @if ($darkBG) {
-        background-image: url(../../images/card-face-backdrop-dark.png);
+        background-image: url(../images/card-face-backdrop-dark.png);
       }
 
       &:before {
-        background-image: url("../../images/cards/#{$pathName}.png");
+        background-image: url("../images/cards/#{$pathName}.png");
         top: $topOffset;
         left: $offsetX;
       }
@@ -62,7 +62,7 @@
 
 .cardFace {
   position: relative;
-  background: url(../../images/card-back.png) no-repeat center;
+  background: url(../images/card-back.png) no-repeat center;
   background-size: cover;
   transition: box-shadow 200ms, filter 100ms;
   box-shadow: none;
@@ -71,7 +71,7 @@
   border-radius: 12px;
 
   &.faceCard {
-    background: url(../../images/card-face-backdrop.png) no-repeat center;
+    background: url(../images/card-face-backdrop.png) no-repeat center;
     background-size: cover;
   }
 

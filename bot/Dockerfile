@@ -5,12 +5,12 @@
 FROM node:12 AS builder
 
 WORKDIR /usr/src/common
-COPY ../common .
+COPY ./common .
 
 WORKDIR /usr/src/app
 
-COPY package*.json tsconfig*.json yarn.lock ./
-COPY ./src ./src
+COPY ./bot/package*.json ./bot/tsconfig*.json ./bot/yarn.lock ./
+COPY ./bot/src ./src
 RUN yarn install --production --pure-lockfile
 RUN yarn build
 
@@ -26,16 +26,17 @@ ARG PORT
 WORKDIR /app
 ENV NODE_ENV=production
 
-COPY package*.json yarn.lock ./
+COPY ./bot/package*.json ./bot/yarn.lock ./
 RUN yarn install --production --pure-lockfile
 RUN yarn global add pm2
 
 ## We just need the build to execute the command
-COPY --from=builder /usr/src/app/build ./build
-COPY ./audio ./audio
+COPY --from=builder /usr/src/app/build ./bot/build
+COPY --from=builder /usr/src/common ./common
+COPY ./bot/audio ./bot/audio
 
 USER node
 
 EXPOSE ${PORT}
 
-CMD ["pm2-runtime", "./build/boot.js"]
+CMD ["pm2-runtime", "./bot/build/boot.js"]

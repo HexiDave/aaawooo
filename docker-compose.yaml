@@ -1,13 +1,26 @@
 version: '3'
 
 services:
+  redis:
+    image: bitnami/redis:latest
+    ports:
+      - 6379
+    environment:
+      - ALLOW_EMPTY_PASSWORD=yes
+    container_name: redis
+    volumes:
+      - redis:/bitnami/redis/data
+    restart: always
+
   bot:
     build:
-      context: ./bot
+      context: ./
+      dockerfile: bot/Dockerfile
       args:
         - PORT=${WEB_PORT}
     container_name: bot
     environment:
+      - REDIS_ADDRESS=redis://redis:6379
       - TOKEN
       - VIRTUAL_HOST=bot.aaaw.ooo
       - VIRTUAL_PORT=${WEB_PORT}
@@ -17,13 +30,20 @@ services:
 
   site:
     build:
-      context: ./site
+      context: ./
+      dockerfile: site/Dockerfile
+      args:
+        - WS_ADDRESS=${REACT_APP_WS_ADDRESS}
     container_name: site
     environment:
       - VIRTUAL_HOST=aaaw.ooo
       - LETSENCRYPT_HOST=aaaw.ooo
       - LETSENCRYPT_EMAIL=hexidave@gmail.com
     restart: always
+
+volumes:
+  redis:
+
 networks:
   default:
     external:

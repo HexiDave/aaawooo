@@ -29,7 +29,7 @@ $cardMargin: 0.5 * ($cardSize - $cardInnerSize);
 
   @each $card in $cards {
     &.card-#{$card} {
-      background-image: url("../../images/cards/#{$card}.png");
+      background-image: url("../images/cards/#{$card}.png");
     }
   }
 }
