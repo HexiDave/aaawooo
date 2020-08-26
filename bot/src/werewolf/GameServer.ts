@@ -14,7 +14,7 @@ import {
 	getGameEventName,
 	getNextNightRole,
 	isDeckValid,
-	NightRoleOrderType,
+	NightRoleOrderType, NightRoleOrderTypeOrNull,
 	OptionalCard,
 	PlayerEvent,
 	PlayerEventType,
@@ -282,6 +282,8 @@ export class GameServer {
 		if (current.done === false) {
 			this.timer.start(current.value)
 		}
+
+		this.storeGameServerState()
 	}
 
 	private buildPublicGameState(deck?: Card[]): GameState {
@@ -349,22 +351,7 @@ export class GameServer {
 		localGameState.deck = deck
 		localGameState.cardCountState = cardCountState
 
-		if (nightRole !== null) {
-			this.updateNightRole(nightRole)
-		} else {
-			switch (this.gameState.phase) {
-				case GamePhase.Night:
-					this.generator = nightStartGenerator(this)
-					break
-				case GamePhase.Day:
-					this.generator = dayGenerator(this)
-					break
-				case GamePhase.Deliberation:
-					this.generator = deliberationGenerator(this)
-					break
-			}
-			this.activateGenerator()
-		}
+		this.activateNextSequence(nightRole)
 	}
 
 	public getUserDetailsById(userId: string) {
@@ -492,10 +479,7 @@ export class GameServer {
 			GameServer.playerEmit(player, GameEvent.ShowOwnCard, player.startingCard)
 		}
 
-		this.storeGameServerState()
-
-		this.generator = nightStartGenerator(this)
-		this.activateGenerator()
+		this.activateNextSequence()
 	}
 
 	public updateCardCount(card: Card, count: number) {
@@ -657,29 +641,39 @@ export class GameServer {
 		}
 	}
 
-	public activateNextSequence() {
-		if (this.gameState.phase === GamePhase.Deliberation) {
-			this.generator = deliberationGenerator(this)
-			this.gameState.nightRole = null
-			this.storeGameServerState()
-			return
-		} else if (this.gameState.phase === GamePhase.Vote) {
-			this.generator = null
-			this.storeGameServerState()
-			return
-		}
+	public activateNextSequence(forceNightRole?: NightRoleOrderTypeOrNull) {
+		const {phase} = this.gameState
 
 		try {
-			this.resetPlayerRoleStates()
-			// Store the game state in case of server crash
-			this.storeGameServerState()
+			if (phase === GamePhase.Night) {
+				this.resetPlayerRoleStates()
+				// Store the game state in case of server crash
+				this.storeGameServerState()
 
-			console.debug('Moving to next sequence')
-			this.updateNextNightRole()
+				if (forceNightRole) {
+					this.updateNightRole(forceNightRole)
+				} else {
+					this.updateNextNightRole()
+				}
+			}
 
-			if (this.gameState.phase === GamePhase.Day) {
-				this.generator = dayGenerator(this)
-				this.activateGenerator()
+			// Run activator here in case phase has changed
+			switch (this.gameState.phase) {
+				case GamePhase.Day:
+					this.generator = dayGenerator(this)
+
+					this.activateGenerator()
+					break
+				case GamePhase.Deliberation:
+					this.generator = deliberationGenerator(this)
+					this.gameState.nightRole = null
+					this.storeGameServerState()
+					break
+				case GamePhase.Vote:
+					this.generator = null
+					this.storeGameServerState()
+					this.activateGenerator()
+					break
 			}
 		} catch (e) {
 			console.error('Error in activation sequence', e)
