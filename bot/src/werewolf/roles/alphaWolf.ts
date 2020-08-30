@@ -42,7 +42,7 @@ export function alphaWolfRoleAction(player: Player, gameServer: GameServer, othe
 	const {deck, cardCountState} = gameServer.gameState
 
 	if (otherPlayer === null ||
-		otherPlayer.userDetails.id === player.userDetails.id ||
+		otherPlayer.userDetails?.id === player.userDetails?.id ||
 		cardCountState.alphaWolfCard === 'none' ||
 		WerewolfCardArray.includes(otherPlayer.startingCard)) {
 		return
@@ -50,10 +50,10 @@ export function alphaWolfRoleAction(player: Player, gameServer: GameServer, othe
 
 	// Werewolf card from middle is the last card in the deck
 	const alphaWolfCardIndex = deck.length - 1
-	const alphaWolfCard = deck[alphaWolfCardIndex]
-	const playerCard = deck[0]
 
 	// Swap
-	deck[0] = alphaWolfCard
+	const playerCard = deck[otherPlayerIndex]
+
+	deck[otherPlayerIndex] = deck[alphaWolfCardIndex]
 	deck[alphaWolfCardIndex] = playerCard
 }

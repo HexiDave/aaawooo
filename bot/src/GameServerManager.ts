@@ -1,11 +1,12 @@
-import { GameServer} from './werewolf/GameServer'
+import { GameServer } from './werewolf/GameServer'
 import { Server } from 'socket.io'
-import { CommonMessage, GameState, getCommonMessageName, HandshakeQuery } from '../../common'
-import { VoiceConnection, Client, VoiceChannel } from 'discord.js'
+import { CommonMessage, getCommonMessageName, HandshakeQuery } from '../../common'
+import { Client, VoiceChannel, VoiceConnection } from 'discord.js'
 import { v4 } from 'uuid'
 import { Redis } from 'ioredis'
-import RedisWrapper, { ExpireMode } from './RedisWrapper'
+import RedisWrapper from './RedisWrapper'
 import { GameServerState } from './werewolf/GameServerState'
+import { IGameServerManager } from './IGameServerManager'
 
 const MAX_INVITE_NUMBER = 999_999
 const DEFAULT_INVITE_CODE_LENGTH = MAX_INVITE_NUMBER.toString().length
@@ -15,7 +16,7 @@ export interface UserRoomDetails {
 	roomId: string
 }
 
-export class GameServerManager {
+export class GameServerManager implements IGameServerManager {
 	private readonly gameServers = new Map<string, GameServer>()
 
 	private readonly inviteCodeMap = new Map<string, UserRoomDetails>()
@@ -123,26 +124,26 @@ export class GameServerManager {
 		})
 	}
 
-	public getGameServer(roomId: string) {
+	getGameServer(roomId: string) {
 		if (this.gameServers.has(roomId))
 			return this.gameServers.get(roomId)
 
 		return null
 	}
 
-	public createGameServer(roomId: string, voiceConnection: VoiceConnection) {
-		const gameServer = new GameServer(roomId, this.io, voiceConnection, this.createGameServerCache())
+	createGameServer(roomId: string, voiceConnection: VoiceConnection) {
+		const gameServer = new GameServer(this, roomId, this.io, voiceConnection, this.createGameServerCache())
 		this.gameServers.set(gameServer.roomId, gameServer)
 
 		return gameServer
 	}
 
-	public destroyGameServer(gameServer: GameServer) {
+	destroyGameServer(gameServer: GameServer) {
 		this.gameServers.delete(gameServer.roomId)
 		gameServer.tearDown()
 	}
 
-	public generateInviteCode(userRoomDetails: UserRoomDetails) {
+	generateInviteCode(userRoomDetails: UserRoomDetails) {
 		let inviteCode: string
 
 		// Delete any old invite codes for this user

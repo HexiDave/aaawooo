@@ -3,6 +3,7 @@ import clsx from 'clsx'
 import { Card } from '../../../common'
 import CardView, { ActiveMode, CardSize, ClickableState, ClickMode } from './CardView'
 import classes from './CardCountView.module.scss'
+import RolloverTransition from './RolloverTransition'
 
 interface CardCountProps {
 	card: Card
@@ -75,11 +76,13 @@ export default function CardCountView({card, count, isMaxed, isAlphaWolfClicked,
 					onMouseLeave={handleMouseLeave}
 					onClick={onClick}
 				>
-					{
-						isMouseOverCard
-							? isAlphaWolfClicked ? 'Unselect' : 'Select'
-							: isAlphaWolfClicked ? 'Selected' : 'Select'
-					}
+					<RolloverTransition>
+						{
+							isMouseOverCard
+								? isAlphaWolfClicked ? 'Unselect' : 'Select'
+								: isAlphaWolfClicked ? 'Selected' : 'Select'
+						}
+					</RolloverTransition>
 				</div>
 			</div>
 		</div>

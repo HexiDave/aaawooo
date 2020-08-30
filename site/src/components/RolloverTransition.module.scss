@@ -1,0 +1,60 @@
+.root {
+  display: grid;
+  grid-template-columns: 1fr;
+  justify-items: center;
+
+  .item {
+    grid-row-start: 1;
+    grid-column-start: 1;
+
+    animation-duration: 100ms;
+  }
+}
+
+.fadeIn {
+  animation-duration: 1s;
+  animation-name: fadeIn;
+}
+
+.slideOut {
+  animation-name: slideOut;
+  transform-origin: top center;
+}
+
+.slideIn {
+  animation-name: slideIn;
+  transform-origin: bottom center;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes slideOut {
+  from {
+    opacity: 1;
+    transform: scaleY(1);
+  }
+  to {
+    opacity: 0;
+    transform: scaleY(0);
+  }
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: scaleY(0);
+  }
+  to {
+    opacity: 1;
+    transform: scaleY(1);
+  }
+}

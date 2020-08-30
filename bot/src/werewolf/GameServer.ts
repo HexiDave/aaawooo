@@ -42,6 +42,7 @@ import { drunkRole, drunkRoleAction } from './roles/drunk'
 import { insomniacRole } from './roles/insomniac'
 import { robberRole, robberRoleAction } from './roles/robber'
 import { troublemakerRole, troublemakerRoleAction } from './roles/troublemaker'
+import { IGameServerManager } from '../IGameServerManager'
 
 export const DEFAULT_FALLBACK_DELAY = 30_000
 export const DEFAULT_ROLE_DURATION = 5_000
@@ -115,6 +116,8 @@ function* voteGenerator(gameServer: GameServer): RoleEventGenerator {
 export class GameServer {
 	public __DEBUG_START_CARD: OptionalCard = null
 
+	public readonly gameServerManager: IGameServerManager
+
 	public readonly gameState: GameState
 
 	public readonly roomId: string
@@ -147,7 +150,8 @@ export class GameServer {
 		return this.players.length
 	}
 
-	public constructor(roomId: string, server: Server, voiceConnection: VoiceConnection, redis: RedisWrapper<GameServerState>) {
+	public constructor(gameServerManager: IGameServerManager, roomId: string, server: Server, voiceConnection: VoiceConnection, redis: RedisWrapper<GameServerState>) {
+		this.gameServerManager = gameServerManager
 		this.gameState = cloneDeep(DefaultGameState)
 		this.roomId = roomId
 		this.players = []
@@ -270,8 +274,16 @@ export class GameServer {
 			this.updateCardCount(card, count)
 		})
 
+		socket.on(getGameEventName(GameEvent.UpdateAlphaWolfCard), (alphaWolfCard: AlphaWolfCards) => {
+			this.updateAlphaWolfCard(alphaWolfCard)
+		})
+
 		socket.on(getGameEventName(GameEvent.RequestStart), () => {
 			this.startGame()
+		})
+
+		socket.on(getGameEventName(GameEvent.RequestDestroy), () => {
+			this.gameServerManager.destroyGameServer(this)
 		})
 
 		socket.on(getGameEventName(GameEvent.NightRoleAction), (role: NightRoleOrderType, ...args: any) => {

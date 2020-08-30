@@ -12,6 +12,7 @@ export enum GameEvent {
 	ShowRoleTimer,
 	PlayerReady,
 	RequestStart,
+	RequestDestroy,
 	ValidationError,
 	ShowPlayersOtherRoles,
 	StartNightRoleAction,

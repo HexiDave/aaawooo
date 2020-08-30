@@ -37,10 +37,8 @@ export function isDeckValid(gameState: GameState, playerCount: number): Validati
 		}
 	}
 
-	const hasAlphaWolf = cardCountState.alphaWolf > 0
-
 	// Validate alpha wolf selection
-	if (hasAlphaWolf) {
+	if (cardCountState.alphaWolf > 0) {
 		if (cardCountState.alphaWolfCard === 'none') {
 			return {
 				reason: ValidationReasonType.AlphaWolfCardMissing,
@@ -50,7 +48,7 @@ export function isDeckValid(gameState: GameState, playerCount: number): Validati
 	}
 
 	// Validate player counts
-	const validDeckCount = playerCount + 3 + (hasAlphaWolf ? 1 : 0)
+	const validDeckCount = playerCount + 3
 	if (deck.length !== validDeckCount) {
 		return {
 			reason: ValidationReasonType.PlayerCountInvalid,
