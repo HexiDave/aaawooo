@@ -16,7 +16,10 @@ export enum GameEvent {
 	ShowPlayersOtherRoles,
 	StartNightRoleAction,
 	NightRoleAction,
-	SetDeliberationTimer
+	SetDeliberationTimer,
+	SetVoteTimer,
+	CastVote,
+	ShowVotes,
 }
 
 export const getGameEventName = (gameEvent: GameEvent) => GameEvent[gameEvent]

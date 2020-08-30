@@ -5,6 +5,60 @@
   display: flex;
   flex-direction: column;
   align-items: center;
+  position: relative;
+  pointer-events: auto;
+}
+
+.playerVotesRoot {
+  position: absolute;
+  bottom: 150px;
+  left: 50%;
+  transform: translateX(-50%);
+  visibility: hidden;
+
+  &.showVotes {
+    visibility: visible;
+  }
+
+  $cornerColor: #ffe388;
+
+  &:after {
+    content: "";
+    display: block;
+    position: absolute;
+    left: calc(50% - 8px);
+    transform: rotate(45deg);
+    border: 8px solid transparent;
+    border-bottom-color: darken($cornerColor, 40%);
+    border-right-color: $cornerColor;
+    bottom: -10px;
+  }
+}
+
+.playerVote {
+  background: $barBackgroundColor;
+  border: 2px solid $barBorderColor;
+  padding: 4px 8px;
+  border-radius: 4px;
+  margin: 4px;
+  display: inline-block;
+
+  .playerContainer {
+    display: flex;
+    align-items: center;
+
+    .voteDisplayName {
+      color: white;
+      white-space: nowrap;
+    }
+
+    .voteAvatar {
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      margin-right: 8px;
+    }
+  }
 }
 
 .displayName {
@@ -14,6 +68,7 @@
   border: 2px solid $barBorderColor;
   padding: 8px 16px;
   border-radius: 4px;
+  white-space: nowrap;
 }
 
 .avatar {

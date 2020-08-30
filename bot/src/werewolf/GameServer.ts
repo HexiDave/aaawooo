@@ -14,7 +14,8 @@ import {
 	getGameEventName,
 	getNextNightRole,
 	isDeckValid,
-	NightRoleOrderType, NightRoleOrderTypeOrNull,
+	NightRoleOrderType,
+	NightRoleOrderTypeOrNull,
 	OptionalCard,
 	PlayerEvent,
 	PlayerEventType,
@@ -46,11 +47,22 @@ export const DEFAULT_FALLBACK_DELAY = 30_000
 export const DEFAULT_ROLE_DURATION = 5_000
 export const DEFAULT_ROLE_RESET_PAUSE = 500
 export const DEFAULT_ROLE_END_PAUSE = 2_000
-export const DELIBERATION_TIMER = 60 * 5 * 1_000
+export const DELIBERATION_TIMER = 5 /** 60*/ * 1_000
+export const VOTE_TIMER = 30_000
 
 type RoleActionFunction = (player: Player, gameServer: GameServer, ...args: any) => void
 
 function* nightStartGenerator(gameServer: GameServer): RoleEventGenerator {
+	yield DEFAULT_ROLE_RESET_PAUSE
+
+	gameServer.updateGamePhase(GamePhase.Night)
+
+	gameServer.sendGameStateToAll()
+
+	yield DEFAULT_ROLE_RESET_PAUSE
+
+	gameServer.showPlayerOwnCards()
+
 	yield 5_000
 
 	gameServer.sendGameStateToAll()
@@ -69,7 +81,7 @@ function* dayGenerator(gameServer: GameServer): RoleEventGenerator {
 
 	gameServer.updateGamePhase(GamePhase.Deliberation)
 
-	yield DEFAULT_ROLE_END_PAUSE
+	return yield DEFAULT_ROLE_END_PAUSE
 }
 
 function* deliberationGenerator(gameServer: GameServer): RoleEventGenerator {
@@ -77,13 +89,27 @@ function* deliberationGenerator(gameServer: GameServer): RoleEventGenerator {
 
 	yield DELIBERATION_TIMER
 
-	gameServer.playTrack(GameServer.buildRoleTrackName('everyone', 'timeisup_321vote'))
-
-	yield 5_000
+	yield gameServer.playTrack(GameServer.buildRoleTrackName('everyone', 'timeisup_321vote'))
 
 	gameServer.updateGamePhase(GamePhase.Vote)
 
-	yield DEFAULT_ROLE_RESET_PAUSE
+	return yield DEFAULT_ROLE_RESET_PAUSE
+}
+
+function* voteGenerator(gameServer: GameServer): RoleEventGenerator {
+	gameServer.resetVotes()
+
+	gameServer.sendGameEvent(GameEvent.SetVoteTimer, VOTE_TIMER)
+
+	yield VOTE_TIMER
+
+	gameServer.finalizeVotes()
+
+	gameServer.sendGameStateToAll(gameServer.gameState.deck)
+	gameServer.showVotes()
+	gameServer.updateGamePhase(GamePhase.End)
+
+	return yield DEFAULT_ROLE_RESET_PAUSE
 }
 
 export class GameServer {
@@ -110,6 +136,8 @@ export class GameServer {
 	private voiceConnection: VoiceConnection
 
 	private redis: RedisWrapper<GameServerState>
+
+	private votes: number[]
 
 	public get isStarted() {
 		return this.gameState.phase > GamePhase.Setup
@@ -258,6 +286,51 @@ export class GameServer {
 			roleAction(player, this, ...args)
 			console.debug('Action complete for role', role)
 		})
+
+		socket.on(getGameEventName(GameEvent.CastVote), (voteIndex: number) => {
+			if (voteIndex < 0 || voteIndex >= this.votes.length)
+				return
+
+			const playerIndex = this.getIndexByPlayer(player)
+
+			this.votes[playerIndex] = voteIndex
+
+			this.showVotes()
+		})
+	}
+
+	public showVotes() {
+		this.sendGameEvent(GameEvent.ShowVotes, this.votes)
+	}
+
+	public showPlayerOwnCards() {
+		// Show player their card
+		for (let player of this.players) {
+			GameServer.playerEmit(player, GameEvent.ShowOwnCard, player.startingCard)
+		}
+	}
+
+	public resetVotes() {
+		this.votes = this.players.map(_ => null)
+	}
+
+	public finalizeVotes() {
+		this.votes = this.votes.map((vote, index) => {
+			if (vote === null || vote === index) {
+				return this.getRandomVoteForIndex(index)
+			}
+
+			return vote
+		})
+	}
+
+	private getRandomVoteForIndex(playerIndex: number) {
+		let voteIndex
+		do {
+			voteIndex = Math.floor(Math.random() * this.players.length)
+		} while (playerIndex === voteIndex)
+
+		return voteIndex
 	}
 
 	public updateGamePhase(phase: GamePhase) {
@@ -351,7 +424,9 @@ export class GameServer {
 		localGameState.deck = deck
 		localGameState.cardCountState = cardCountState
 
-		this.activateNextSequence(nightRole)
+		if (this.isStarted) {
+			this.activateNextSequence(nightRole)
+		}
 	}
 
 	public getUserDetailsById(userId: string) {
@@ -472,14 +547,8 @@ export class GameServer {
 
 		this.sendGameStateToAll()
 
-		this.updateGamePhase(GamePhase.Night)
-
-		// Show player their card
-		for (let player of this.players) {
-			GameServer.playerEmit(player, GameEvent.ShowOwnCard, player.startingCard)
-		}
-
-		this.activateNextSequence()
+		this.generator = nightStartGenerator(this)
+		this.activateGenerator()
 	}
 
 	public updateCardCount(card: Card, count: number) {
@@ -668,9 +737,10 @@ export class GameServer {
 					this.generator = deliberationGenerator(this)
 					this.gameState.nightRole = null
 					this.storeGameServerState()
+					this.activateGenerator()
 					break
 				case GamePhase.Vote:
-					this.generator = null
+					this.generator = voteGenerator(this)
 					this.storeGameServerState()
 					this.activateGenerator()
 					break

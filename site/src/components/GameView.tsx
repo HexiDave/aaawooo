@@ -35,7 +35,8 @@ interface GameViewState {
 	clickablePlayers: number[]
 	clickableMiddleCards: number[]
 	playerRole: NightRoleOrderTypeOrNull
-	cardClickBuffer: number[]
+	cardClickBuffer: number[],
+	votes: number[]
 }
 
 const DEFAULT_GAME_VIEW_STATE: GameViewState = {
@@ -45,7 +46,8 @@ const DEFAULT_GAME_VIEW_STATE: GameViewState = {
 	clickablePlayers: [],
 	clickableMiddleCards: [],
 	playerRole: null,
-	cardClickBuffer: []
+	cardClickBuffer: [],
+	votes: []
 }
 
 export default class GameView extends React.Component<GameViewProps, GameViewState> {
@@ -129,7 +131,12 @@ export default class GameView extends React.Component<GameViewProps, GameViewSta
 	}
 
 	private handleCardClick = (index: number) => {
-		const {playerRole, cardClickBuffer, clickablePlayers} = this.state
+		const {playerRole, cardClickBuffer, clickablePlayers, gameState: {phase}} = this.state
+
+		if (phase === GamePhase.Vote) {
+			this.props.socket?.emit(getGameEventName(GameEvent.CastVote), index)
+			return
+		}
 
 		switch (playerRole) {
 			case Card.Troublemaker:
@@ -188,6 +195,18 @@ export default class GameView extends React.Component<GameViewProps, GameViewSta
 	}
 
 	private setupSocket(socket: SocketIOClient.Socket) {
+		setGameEventHandler(socket, GameEvent.SetDeliberationTimer, (timer: number) => {
+
+		})
+
+		setGameEventHandler(socket, GameEvent.SetVoteTimer, (timer: number) => {
+
+		})
+
+		setGameEventHandler(socket, GameEvent.ShowVotes, (votes: number[]) => {
+			this.setState({votes})
+		})
+
 		setGameEventHandler(socket, GameEvent.ShowOwnCard, (card: Card) => {
 			const {gameState, userDetailsList, playerId} = this.state
 			const playerIndex = userDetailsList.findIndex(u => u?.id === playerId)
@@ -256,6 +275,12 @@ export default class GameView extends React.Component<GameViewProps, GameViewSta
 					phase
 				}
 			})
+
+			if (phase === GamePhase.Vote) {
+				this.setOtherPlayersClickable()
+			} else if (phase === GamePhase.End) {
+				this.setState({clickablePlayers: []})
+			}
 		})
 
 		setGameEventHandler(socket, GameEvent.ShowPlayersOtherRoles, (packet: ShowPlayersOtherRolesPacket) => {
@@ -368,7 +393,7 @@ export default class GameView extends React.Component<GameViewProps, GameViewSta
 	}
 
 	render() {
-		const {userDetailsList, gameState, clickablePlayers, clickableMiddleCards} = this.state
+		const {userDetailsList, gameState, clickablePlayers, clickableMiddleCards, votes} = this.state
 
 		return (
 			<GameStage isNight={gameState.phase === GamePhase.Night}>
@@ -393,6 +418,7 @@ export default class GameView extends React.Component<GameViewProps, GameViewSta
 					isShowingClickable={clickablePlayers.length > 0}
 					areCardsVisible={gameState.phase > GamePhase.Setup}
 					shownCards={gameState.deck}
+					votes={votes}
 					onCardClick={this.handleCardClick}
 				/>
 			</GameStage>

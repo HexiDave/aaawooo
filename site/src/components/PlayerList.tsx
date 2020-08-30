@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useMemo } from 'react'
 import { OptionalCard, UserDetails } from '../../../common'
 import clsx from 'clsx'
 import classes from './PlayerList.module.scss'
@@ -12,9 +12,22 @@ interface PlayerListProps {
 	areCardsVisible: boolean
 	shownCards: OptionalCard[]
 	onCardClick: (index: number) => void
+	votes: number[]
 }
 
-export default function PlayerList({userDetailsList, clickableUsers, isShowingClickable, areCardsVisible, shownCards, onCardClick}: PlayerListProps) {
+export interface PlayerDisplayDetails {
+	displayName: string
+	avatarUrl: string
+}
+
+export default function PlayerList({userDetailsList, clickableUsers, isShowingClickable, areCardsVisible, shownCards, votes, onCardClick}: PlayerListProps) {
+	const players = useMemo(
+		() => userDetailsList.map<PlayerDisplayDetails>((userDetails, index) => ({
+			displayName: userDetails?.displayName ?? `Player ${index + 1}`,
+			avatarUrl: userDetails?.avatarURL ?? `https://cdn.discordapp.com/embed/avatars/${index % 5}.png`
+		})),
+		[userDetailsList])
+
 	return (
 		<div
 			className={clsx(classes.root, {
@@ -29,11 +42,24 @@ export default function PlayerList({userDetailsList, clickableUsers, isShowingCl
 							: ClickableState.NotClickable
 						: ClickableState.None
 
+					const playerVotes = votes.reduce((prev, vote, seatIndex) => {
+						// If the vote is for this player
+						if (vote === index) {
+							// Add the voting player's seat index
+							return [
+								...prev,
+								seatIndex
+							]
+						}
+
+						return prev
+					}, [] as number[]).map(seatIndex => players[seatIndex])
+
 					return (
 						<PlayerItem
 							key={index}
-							userDetails={userDetails}
-							seatIndex={index}
+							player={players[index]}
+							playerVotes={playerVotes}
 							shownCard={shownCards[index]}
 							isCardVisible={areCardsVisible}
 							clickableState={clickableState}
