@@ -7,6 +7,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
+  position: relative;
 
   button {
     margin: 8px;
@@ -20,6 +21,10 @@
     color: #ea42ea;
     font-weight: bold;
     font-size: 1.4em;
+    position: absolute;
+    // Center it
+    left: 50%;
+    transform: translateX(-50%);
   }
 
   .clock {
@@ -27,6 +32,24 @@
     color: darkorange;
     font-weight: bold;
     font-size: 1.1em;
+  }
+
+  .countdownBar {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: -3px;
+    height: 3px;
+    transform: scaleX(1);
+    background: darkorange;
+    z-index: 9999;
+    opacity: 0;
+
+    transition: opacity 100ms linear;
+
+    &.showCountdownBar {
+      opacity: 1;
+    }
   }
 }
 

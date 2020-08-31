@@ -49,7 +49,7 @@ export const DEFAULT_ROLE_DURATION = 5_000
 export const DEFAULT_ROLE_RESET_PAUSE = 500
 export const DEFAULT_ROLE_END_PAUSE = 2_000
 export const DELIBERATION_TIMER = 5 /** 60*/ * 1_000
-export const VOTE_TIMER = 30_000
+export const VOTE_TIMER = 15_000
 
 type RoleActionFunction = (player: Player, gameServer: GameServer, ...args: any) => void
 
@@ -86,7 +86,8 @@ function* dayGenerator(gameServer: GameServer): RoleEventGenerator {
 }
 
 function* deliberationGenerator(gameServer: GameServer): RoleEventGenerator {
-	gameServer.sendGameEvent(GameEvent.SetDeliberationTimer, DELIBERATION_TIMER)
+	const endTime = new Date(Date.now() + DELIBERATION_TIMER)
+	gameServer.sendGameEvent(GameEvent.SetDeliberationTimer, endTime.getTime())
 
 	yield DELIBERATION_TIMER
 
@@ -100,7 +101,8 @@ function* deliberationGenerator(gameServer: GameServer): RoleEventGenerator {
 function* voteGenerator(gameServer: GameServer): RoleEventGenerator {
 	gameServer.resetVotes()
 
-	gameServer.sendGameEvent(GameEvent.SetVoteTimer, VOTE_TIMER)
+	const endTime = new Date(Date.now() + VOTE_TIMER)
+	gameServer.sendGameEvent(GameEvent.SetVoteTimer, endTime.getTime())
 
 	yield VOTE_TIMER
 
@@ -671,7 +673,8 @@ export class GameServer {
 	}
 
 	public sendStartNightRoleAction(player: Player, role: NightRoleOrderType, duration: number = DEFAULT_ROLE_DURATION) {
-		player.socket?.emit(getGameEventName(GameEvent.StartNightRoleAction), role, duration)
+		const endTime = new Date(Date.now() + duration)
+		player.socket?.emit(getGameEventName(GameEvent.StartNightRoleAction), role, endTime.getTime())
 	}
 
 	public pause() {

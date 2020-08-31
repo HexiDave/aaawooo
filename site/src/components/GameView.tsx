@@ -64,10 +64,61 @@ export default class GameView extends React.Component<GameViewProps, GameViewSta
 
 	private clockTimer: NodeJS.Timeout | null = null
 
+	private countdownElemRef = React.createRef<HTMLDivElement>()
+
+	private countdownAnimation: number | null = null
+
 	private getClockString = () => {
 		const now = new Date()
 
 		return now.toLocaleTimeString()
+	}
+
+	private clearCountdownAnimation = () => {
+		if (this.countdownAnimation !== null) {
+			cancelAnimationFrame(this.countdownAnimation)
+			this.countdownAnimation = null
+		}
+
+		if (this.countdownElemRef.current !== null) {
+			this.countdownElemRef.current.className = classes.countdownBar
+		}
+	}
+
+	private requestCountdownAnimation = (startDateTime: Date, endDateTime: Date) => () => {
+		const now = new Date()
+
+		if (now > endDateTime) {
+			this.clearCountdownAnimation()
+			return
+		}
+
+		const countdownElem = this.countdownElemRef.current
+
+		if (countdownElem === null)
+			return
+
+		// Scale the current time between [0,1]
+		const startTime = startDateTime.getTime()
+		const endTime = endDateTime.getTime()
+		const nowTime = now.getTime()
+
+		const nowPercent = Math.min(Math.max(1.0 - ((nowTime - startTime) / (endTime - startTime)), 0), 1)
+
+		countdownElem.style.transform = `scaleX(${nowPercent})`
+
+		this.countdownAnimation = requestAnimationFrame(this.requestCountdownAnimation(startDateTime, endDateTime))
+	}
+
+	private setCountdownTimer(endTime: number) {
+		const startDateTime = new Date()
+		const endDateTime = new Date(endTime)
+
+		this.clearCountdownAnimation()
+		if (this.countdownElemRef.current !== null) {
+			this.countdownElemRef.current.className = `${classes.countdownBar} ${classes.showCountdownBar}`
+			this.countdownAnimation = requestAnimationFrame(this.requestCountdownAnimation(startDateTime, endDateTime))
+		}
 	}
 
 	private clearDeck = () => {
@@ -235,12 +286,12 @@ export default class GameView extends React.Component<GameViewProps, GameViewSta
 	}
 
 	private setupSocket(socket: SocketIOClient.Socket) {
-		setGameEventHandler(socket, GameEvent.SetDeliberationTimer, (timer: number) => {
-
+		setGameEventHandler(socket, GameEvent.SetDeliberationTimer, (endTime: number) => {
+			this.setCountdownTimer(endTime)
 		})
 
-		setGameEventHandler(socket, GameEvent.SetVoteTimer, (timer: number) => {
-
+		setGameEventHandler(socket, GameEvent.SetVoteTimer, (endTime: number) => {
+			this.setCountdownTimer(endTime)
 		})
 
 		setGameEventHandler(socket, GameEvent.ShowVotes, (votes: number[]) => {
@@ -372,7 +423,9 @@ export default class GameView extends React.Component<GameViewProps, GameViewSta
 			}
 		})
 
-		setGameEventHandler(socket, GameEvent.StartNightRoleAction, (playerRole: NightRoleOrderType, duration: number) => {
+		setGameEventHandler(socket, GameEvent.StartNightRoleAction, (playerRole: NightRoleOrderType, endTime: number) => {
+			this.setCountdownTimer(endTime)
+
 			this.setState({
 				playerRole
 			})
@@ -435,6 +488,7 @@ export default class GameView extends React.Component<GameViewProps, GameViewSta
 		if (this.props.connectionStage !== prevProps.connectionStage) {
 			if (this.props.connectionStage !== ConnectionStage.Success) {
 				this.setState(DEFAULT_GAME_VIEW_STATE)
+				this.clearCountdownAnimation()
 			}
 		}
 	}
@@ -443,6 +497,8 @@ export default class GameView extends React.Component<GameViewProps, GameViewSta
 		if (this.clockTimer) {
 			clearInterval(this.clockTimer)
 		}
+
+		this.clearCountdownAnimation()
 	}
 
 	render() {
@@ -503,6 +559,8 @@ export default class GameView extends React.Component<GameViewProps, GameViewSta
 					<div className={classes.clock} ref={this.clockElemRef}>
 						{this.getClockString()}
 					</div>
+
+					<div className={classes.countdownBar} ref={this.countdownElemRef}/>
 				</div>
 
 				<GameStage isNight={gameState.phase === GamePhase.Night}>
