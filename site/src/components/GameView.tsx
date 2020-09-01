@@ -43,6 +43,7 @@ interface GameViewState {
 	cardClickBuffer: number[],
 	votes: number[],
 	isGameDestroyDialogShown: boolean
+	playersSpeaking: number[]
 }
 
 const DEFAULT_GAME_VIEW_STATE: GameViewState = {
@@ -54,7 +55,8 @@ const DEFAULT_GAME_VIEW_STATE: GameViewState = {
 	playerRole: null,
 	cardClickBuffer: [],
 	votes: [],
-	isGameDestroyDialogShown: false
+	isGameDestroyDialogShown: false,
+	playersSpeaking: []
 }
 
 export default class GameView extends React.Component<GameViewProps, GameViewState> {
@@ -292,6 +294,30 @@ export default class GameView extends React.Component<GameViewProps, GameViewSta
 	}
 
 	private setupSocket(socket: SocketIOClient.Socket) {
+		setGameEventHandler(socket, GameEvent.UpdatePlayerSpeakingState, (playerIndex: number, isSpeaking: boolean) => {
+			const {playersSpeaking} = this.state
+
+			const index = playersSpeaking.indexOf(playerIndex)
+
+			// In the list and shouldn't be
+			if (index !== -1 && !isSpeaking) {
+				this.setState({
+					playersSpeaking: [
+						...playersSpeaking.slice(0, index),
+						...playersSpeaking.slice(index + 1)
+					]
+				})
+			} else if (index === -1 && isSpeaking) {
+				// Not in the list and should be
+				this.setState({
+					playersSpeaking: [
+						...playersSpeaking,
+						playerIndex
+					]
+				})
+			}
+		})
+
 		setGameEventHandler(socket, GameEvent.SetDeliberationTimer, (endTime: number) => {
 			this.setCountdownTimer(endTime)
 		})
@@ -527,7 +553,15 @@ export default class GameView extends React.Component<GameViewProps, GameViewSta
 	}
 
 	render() {
-		const {userDetailsList, gameState, clickablePlayers, clickableMiddleCards, votes, isGameDestroyDialogShown} = this.state
+		const {
+			userDetailsList,
+			gameState,
+			clickablePlayers,
+			clickableMiddleCards,
+			votes,
+			playersSpeaking,
+			isGameDestroyDialogShown
+		} = this.state
 
 		return (
 			<React.Fragment>
@@ -613,6 +647,7 @@ export default class GameView extends React.Component<GameViewProps, GameViewSta
 						areCardsVisible={gameState.phase > GamePhase.Setup}
 						shownCards={gameState.deck}
 						votes={votes}
+						playersSpeaking={playersSpeaking}
 						onCardClick={this.handleCardClick}
 					/>
 				</GameStage>

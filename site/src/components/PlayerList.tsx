@@ -2,7 +2,7 @@ import React, { useMemo } from 'react'
 import { OptionalCard, UserDetails } from '../../../common'
 import clsx from 'clsx'
 import classes from './PlayerList.module.scss'
-import PlayerItem from './PlayerItem'
+import PlayerItem, { PlayerDisplayDetails } from './PlayerItem'
 import { ClickableState } from './CardView'
 
 interface PlayerListProps {
@@ -13,20 +13,27 @@ interface PlayerListProps {
 	shownCards: OptionalCard[]
 	onCardClick: (index: number) => void
 	votes: number[]
+	playersSpeaking: number[]
 }
 
-export interface PlayerDisplayDetails {
-	displayName: string
-	avatarUrl: string
-}
-
-export default function PlayerList({userDetailsList, clickableUsers, isShowingClickable, areCardsVisible, shownCards, votes, onCardClick}: PlayerListProps) {
+export default function PlayerList({
+	userDetailsList,
+	clickableUsers,
+	isShowingClickable,
+	areCardsVisible,
+	shownCards,
+	votes,
+	playersSpeaking,
+	onCardClick
+}: PlayerListProps) {
 	const players = useMemo(
 		() => userDetailsList.map<PlayerDisplayDetails>((userDetails, index) => ({
 			displayName: userDetails?.displayName ?? `Player ${index + 1}`,
-			avatarUrl: userDetails?.avatarURL ?? `https://cdn.discordapp.com/embed/avatars/${index % 5}.png`
+			avatarUrl: userDetails?.avatarURL ?? `https://cdn.discordapp.com/embed/avatars/${index % 5}.png`,
+			displayHexColor: userDetails?.displayHexColor ?? '#fff',
+			isSpeaking: playersSpeaking.includes(index)
 		})),
-		[userDetailsList])
+		[userDetailsList, playersSpeaking])
 
 	return (
 		<div

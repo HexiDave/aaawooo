@@ -1,4 +1,4 @@
-import Discord, { Collection, Message, TextChannel } from 'discord.js'
+import Discord, { Collection, GuildMember, Message, TextChannel, VoiceState } from 'discord.js'
 import { GameServerManager } from './GameServerManager'
 import { Card, CardArray, MAX_ROOM_SIZE, UserDetails } from '../../common'
 
@@ -69,6 +69,15 @@ export default class DiscordBot {
 			}
 		})
 
+		client.on('guildMemberSpeaking', (guildMember, speaking) => {
+			const channelID = guildMember.voice?.channelID
+			const isSpeaking = speaking.has('SPEAKING')
+
+			const gameServer = this.gameServerManager.getGameServer(channelID)
+
+			gameServer?.updatePlayerSpeaking(guildMember.id, isSpeaking)
+		})
+
 		client.on('error', console.error)
 
 		await client.login(process.env.TOKEN)
@@ -119,6 +128,7 @@ export default class DiscordBot {
 			.mapValues<UserDetails>(member => ({
 				avatarURL: member.user.avatarURL(),
 				displayName: member.displayName,
+				displayHexColor: member.displayHexColor,
 				id: member.id
 			}))
 			.array()

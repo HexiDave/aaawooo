@@ -259,6 +259,15 @@ export class GameServer {
 		return this.players.findIndex(p => p === player)
 	}
 
+	public updatePlayerSpeaking(playerId: string, isSpeaking: boolean) {
+		const playerIndex = this.players.findIndex(p => p.userDetails?.id === playerId)
+
+		if (playerIndex === -1)
+			return
+
+		this.sendGameEvent(GameEvent.UpdatePlayerSpeakingState, playerIndex, isSpeaking)
+	}
+
 	private setupPlayerSocket(player: Player) {
 		const {socket} = player
 

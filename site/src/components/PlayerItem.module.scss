@@ -79,11 +79,12 @@
   > img {
     width: 64px;
     border-radius: 50%;
-    border: 2px solid rgba(0, 0, 0, 0.2);
-  }
+    border: 3px solid rgba(0, 0, 0, 0.2);
+    transition: border 100ms linear;
 
-  &.isSpeaking {
-
+    &.isSpeaking {
+      border: 3px solid green;
+    }
   }
 }
 

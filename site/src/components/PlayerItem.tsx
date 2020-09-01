@@ -3,7 +3,13 @@ import { Card } from '../../../common'
 import clsx from 'clsx'
 import classes from './PlayerItem.module.scss'
 import CardView, { ClickableState } from './CardView'
-import { PlayerDisplayDetails } from './PlayerList'
+
+export interface PlayerDisplayDetails {
+	displayName: string
+	displayHexColor: string
+	avatarUrl: string
+	isSpeaking: boolean
+}
 
 interface PlayerItemProps {
 	player: PlayerDisplayDetails
@@ -42,6 +48,9 @@ export default function PlayerItem({player, playerVotes, clickableState, isCardV
 								/>
 								<span
 									className={classes.voteDisplayName}
+									style={{
+										color: playerThatVoted.displayHexColor
+									}}
 								>
 									{playerThatVoted.displayName}
 								</span>
@@ -49,9 +58,17 @@ export default function PlayerItem({player, playerVotes, clickableState, isCardV
 						</div>
 					))}
 				</div>
-				<div className={classes.displayName}>{displayName}</div>
+				<div
+					className={classes.displayName}
+					style={{
+						color: player.displayHexColor
+					}}
+				>
+					{displayName}
+				</div>
 				<picture className={classes.avatar}>
 					<img
+						className={player.isSpeaking ? classes.isSpeaking : undefined}
 						src={avatarUrl}
 						alt='avatar'
 					/>
