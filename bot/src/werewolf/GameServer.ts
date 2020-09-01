@@ -31,7 +31,7 @@ import { RoleEventGenerator, RoleEventGeneratorFunc } from './RoleEventFuncType'
 import { VoiceConnection } from 'discord.js'
 import RedisWrapper from '../RedisWrapper'
 import { GameServerState } from './GameServerState'
-import { werewolfRole } from './roles/werewolf'
+import { loneWolfRoleAction, werewolfRole } from './roles/werewolf'
 import { alphaWolfRole, alphaWolfRoleAction } from './roles/alphaWolf'
 import { mysticWolfRole, mysticWolfRoleAction } from './roles/mysticWolf'
 import { minionRole } from './roles/minion'
@@ -176,7 +176,7 @@ export class GameServer {
 		this.addRole(Card.Robber, robberRole, robberRoleAction)
 		this.addRole(Card.Seer, seerRole, seerRoleAction)
 		this.addRole(Card.Troublemaker, troublemakerRole, troublemakerRoleAction)
-		this.addRole(Card.Werewolf, werewolfRole)
+		this.addRole(Card.Werewolf, werewolfRole, loneWolfRoleAction)
 	}
 
 	public addRole(role: NightRoleOrderType, roleEventGen: RoleEventGeneratorFunc, roleAction?: RoleActionFunction) {
@@ -278,6 +278,11 @@ export class GameServer {
 
 		socket.on(getGameEventName(GameEvent.UpdateAlphaWolfCard), (alphaWolfCard: AlphaWolfCards) => {
 			this.updateAlphaWolfCard(alphaWolfCard)
+		})
+
+		socket.on(getGameEventName(GameEvent.UpdateLoneWolf), (loneWolfEnabled: boolean) => {
+			this.gameState.loneWolfEnabled = loneWolfEnabled
+			this.sendGameEvent(GameEvent.UpdateLoneWolf, loneWolfEnabled)
 		})
 
 		socket.on(getGameEventName(GameEvent.RequestStart), () => {

@@ -1,5 +1,6 @@
 @import "../variables";
 @import "../colors";
+@import "../button";
 
 .root {
   display: flex;
@@ -55,6 +56,26 @@
         display: block;
         margin-top: 4px;
         text-align: center;
+      }
+    }
+  }
+
+  $notEnabledButtonColor: #000;
+
+  button {
+    @include button();
+    padding: 4px 8px;
+    margin-left: 8px;
+
+    &.notEnabled {
+      background: $notEnabledButtonColor;
+
+      &:hover {
+        background: lighten($notEnabledButtonColor, 5%);
+      }
+
+      &:active {
+        background: darken($notEnabledButtonColor, 5%);
       }
     }
   }

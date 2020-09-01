@@ -5,6 +5,7 @@ export enum GameEvent {
 	PhaseChange,
 	UpdateCardCount,
 	UpdateAlphaWolfCard,
+	UpdateLoneWolf,
 	UpdatePlayers,
 	ShowOwnCard,
 	UpdatePlayerHistory,

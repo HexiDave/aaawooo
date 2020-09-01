@@ -246,6 +246,7 @@ export default class GameView extends React.Component<GameViewProps, GameViewSta
 					})
 				}
 				break
+			case Card.Werewolf:
 			case Card.ApprenticeSeer:
 				// Reset it
 				this.setState({
@@ -265,6 +266,11 @@ export default class GameView extends React.Component<GameViewProps, GameViewSta
 
 	private handleAlphaWolfCardChange = (alphaWolfCard: AlphaWolfCards) => {
 		this.props.socket?.emit(getGameEventName(GameEvent.UpdateAlphaWolfCard), alphaWolfCard)
+	}
+
+	private handleLoneWolfChange = (loneWolfEnabled: boolean) => {
+		this.updateLoneWolfEnabled(loneWolfEnabled)
+		this.props.socket?.emit(getGameEventName(GameEvent.UpdateLoneWolf), loneWolfEnabled)
 	}
 
 	private handleStartGameClick = () => {
@@ -353,6 +359,10 @@ export default class GameView extends React.Component<GameViewProps, GameViewSta
 
 		setGameEventHandler(socket, GameEvent.UpdateAlphaWolfCard, (alphaWolfCard: AlphaWolfCards) => {
 			this.setAlphaWolfCard(alphaWolfCard)
+		})
+
+		setGameEventHandler(socket, GameEvent.UpdateLoneWolf, (loneWolfEnabled: boolean) => {
+			this.updateLoneWolfEnabled(loneWolfEnabled)
 		})
 
 		setGameEventHandler(socket, GameEvent.ValidationError, (validationResult: ValidationResult) => {
@@ -446,12 +456,27 @@ export default class GameView extends React.Component<GameViewProps, GameViewSta
 				case Card.ApprenticeSeer:
 					this.setMiddleCardsClickable()
 					break
+				case Card.Werewolf:
+					if (this.state.gameState.loneWolfEnabled) {
+						this.setMiddleCardsClickable()
+					}
+					break
 				case Card.VillageIdiot:
 					break
 			}
 		})
 
 		socket.emit(getGameEventName(GameEvent.PlayerReady))
+	}
+
+	private updateLoneWolfEnabled(loneWolfEnabled: boolean) {
+		const {gameState} = this.state
+		this.setState({
+			gameState: {
+				...gameState,
+				loneWolfEnabled
+			}
+		})
 	}
 
 	private resetActions() {
@@ -567,9 +592,11 @@ export default class GameView extends React.Component<GameViewProps, GameViewSta
 					<CardCountList
 						playerCount={userDetailsList.length}
 						cardCountState={gameState.cardCountState}
+						isLoneWolfEnabled={gameState.loneWolfEnabled}
 						isShown={gameState.phase === GamePhase.Setup}
 						onUpdateCardCount={this.handleCardCountUpdate}
 						onUpdateAlphaWolfCardChange={this.handleAlphaWolfCardChange}
+						onUpdateLoneWolfEnabled={this.handleLoneWolfChange}
 					/>
 
 					<ActivityView

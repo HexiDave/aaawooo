@@ -25,11 +25,21 @@ interface CardCount {
 interface CardCountListProps extends BaseTransitionProps {
 	playerCount: number
 	cardCountState: CardCountState
+	isLoneWolfEnabled: boolean
 	onUpdateCardCount: (card: Card, count: number) => void
 	onUpdateAlphaWolfCardChange: (card: AlphaWolfCards) => void
+	onUpdateLoneWolfEnabled: (loneWolfEnabled: boolean) => void
 }
 
-export default function CardCountList({playerCount, cardCountState, isShown, onUpdateCardCount, onUpdateAlphaWolfCardChange}: CardCountListProps) {
+export default function CardCountList({
+	playerCount,
+	cardCountState,
+	isLoneWolfEnabled,
+	isShown,
+	onUpdateCardCount,
+	onUpdateAlphaWolfCardChange,
+	onUpdateLoneWolfEnabled
+}: CardCountListProps) {
 	const timerRef = useRef<Timer>()
 	const cardCountRef = useRef<CardCount>()
 
@@ -151,6 +161,15 @@ export default function CardCountList({playerCount, cardCountState, isShown, onU
 					>
 						{AlphaWolfCardNames[cardCounts.alphaWolfCard]}
 					</span>
+				</div>
+				<div>
+					Lone Wolf:
+					<button
+						className={isLoneWolfEnabled ? undefined : classes.notEnabled}
+						onClick={() => onUpdateLoneWolfEnabled(!isLoneWolfEnabled)}
+					>
+						{isLoneWolfEnabled ? 'Yes' : 'No'}
+					</button>
 				</div>
 			</div>
 			{CardArray.map(card => {
