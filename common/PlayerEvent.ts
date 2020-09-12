@@ -1,11 +1,13 @@
 import { Card } from './Card'
 import { UserDetails } from './UserDetails'
+import { BaseEvent } from './BaseEvent'
 
 export enum PlayerEventType {
 	StartedWithCard,
+	StartedNightRole
 }
 
-export interface PlayerEvent {
+export interface BasePlayerEvent {
 	type: PlayerEventType
 
 	// What cards were involved? Card type.
@@ -17,3 +19,5 @@ export interface PlayerEvent {
 	// What users were involved?
 	userOrUsers?: UserDetails | UserDetails[]
 }
+
+export type PlayerEvent = BasePlayerEvent & BaseEvent

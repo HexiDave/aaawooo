@@ -5,12 +5,14 @@ import {
 	DefaultGameState,
 	END_ROLE_ACTION,
 	GameEvent,
+	GameEventType,
 	GamePhase,
 	GameState,
 	getDeckSizeFromCardCountState,
 	getGameEventName,
 	NightRoleOrderType,
 	NightRoleOrderTypeOrNull,
+	PlayerEvent,
 	ShowPlayersOtherRolesPacket,
 	UserDetails,
 	ValidationResult
@@ -44,6 +46,8 @@ interface GameViewState {
 	votes: number[],
 	isGameDestroyDialogShown: boolean
 	playersSpeaking: number[]
+	playerHistory: PlayerEvent[]
+	gameHistory: GameEvent[]
 }
 
 const DEFAULT_GAME_VIEW_STATE: GameViewState = {
@@ -56,7 +60,9 @@ const DEFAULT_GAME_VIEW_STATE: GameViewState = {
 	cardClickBuffer: [],
 	votes: [],
 	isGameDestroyDialogShown: false,
-	playersSpeaking: []
+	playersSpeaking: [],
+	playerHistory: [],
+	gameHistory: [],
 }
 
 export default class GameView extends React.Component<GameViewProps, GameViewState> {
@@ -69,6 +75,10 @@ export default class GameView extends React.Component<GameViewProps, GameViewSta
 	private countdownElemRef = React.createRef<HTMLDivElement>()
 
 	private countdownAnimation: number | null = null
+
+	private emitGameEvent(gameEvent: GameEventType, ...args: any) {
+		this.props.socket?.emit(getGameEventName(gameEvent), ...args)
+	}
 
 	private getClockString = () => {
 		const now = new Date()
@@ -192,19 +202,19 @@ export default class GameView extends React.Component<GameViewProps, GameViewSta
 	}
 
 	private handleCardCountUpdate = (card: Card, count: number) => {
-		this.props.socket?.emit(getGameEventName(GameEvent.UpdateCardCount), card, count)
+		this.emitGameEvent(GameEventType.UpdateCardCount, card, count)
 	}
 
 	private sendCardClickAction(index: number) {
 		const {playerRole} = this.state
-		this.props.socket?.emit(getGameEventName(GameEvent.NightRoleAction), playerRole, index)
+		this.emitGameEvent(GameEventType.NightRoleAction, playerRole, index)
 	}
 
 	private handleCardClick = (index: number) => {
 		const {playerRole, cardClickBuffer, clickablePlayers, gameState: {phase}} = this.state
 
 		if (phase === GamePhase.Vote) {
-			this.props.socket?.emit(getGameEventName(GameEvent.CastVote), index)
+			this.emitGameEvent(GameEventType.CastVote, index)
 			return
 		}
 
@@ -224,7 +234,7 @@ export default class GameView extends React.Component<GameViewProps, GameViewSta
 					// Don't send the action yet
 					return
 				} else {
-					this.props.socket?.emit(getGameEventName(GameEvent.NightRoleAction), playerRole, cardClickBuffer[0], index)
+					this.emitGameEvent(GameEventType.NightRoleAction, playerRole, cardClickBuffer[0], index)
 
 					// Reset it
 					this.setState({
@@ -267,16 +277,16 @@ export default class GameView extends React.Component<GameViewProps, GameViewSta
 	}
 
 	private handleAlphaWolfCardChange = (alphaWolfCard: AlphaWolfCards) => {
-		this.props.socket?.emit(getGameEventName(GameEvent.UpdateAlphaWolfCard), alphaWolfCard)
+		this.emitGameEvent(GameEventType.UpdateAlphaWolfCard, alphaWolfCard)
 	}
 
 	private handleLoneWolfChange = (loneWolfEnabled: boolean) => {
 		this.updateLoneWolfEnabled(loneWolfEnabled)
-		this.props.socket?.emit(getGameEventName(GameEvent.UpdateLoneWolf), loneWolfEnabled)
+		this.emitGameEvent(GameEventType.UpdateLoneWolf, loneWolfEnabled)
 	}
 
 	private handleStartGameClick = () => {
-		this.props.socket?.emit(getGameEventName(GameEvent.RequestStart))
+		this.emitGameEvent(GameEventType.RequestStart)
 	}
 
 	private handleDestroyGameClick = () => {
@@ -290,11 +300,27 @@ export default class GameView extends React.Component<GameViewProps, GameViewSta
 	private handleDestroyGame = () => {
 		this.handleDestroyGameDialogClose()
 
-		this.props.socket?.emit(getGameEventName(GameEvent.RequestDestroy))
+		this.emitGameEvent(GameEventType.RequestDestroy)
 	}
 
 	private setupSocket(socket: SocketIOClient.Socket) {
-		setGameEventHandler(socket, GameEvent.UpdatePlayerSpeakingState, (playerIndex: number, isSpeaking: boolean) => {
+		setGameEventHandler(socket, GameEventType.UpdatePlayerHistory, (playerHistory: PlayerEvent[]) => {
+			console.debug('Player history', playerHistory)
+			this.setState({playerHistory})
+		})
+
+		setGameEventHandler(socket, GameEventType.UpdateGameHistory, (gameHistory: GameEvent[]) => {
+			console.debug('Game history', gameHistory)
+			this.setState({gameHistory})
+		})
+
+		setGameEventHandler(socket, GameEventType.UpdateTotalHistory, ({gameHistory, playerHistory}: {gameHistory: GameEvent[], playerHistory: PlayerEvent[]}) => {
+			console.debug('Game history', gameHistory)
+			console.debug('Player history', playerHistory)
+			this.setState({gameHistory, playerHistory})
+		})
+
+		setGameEventHandler(socket, GameEventType.UpdatePlayerSpeakingState, (playerIndex: number, isSpeaking: boolean) => {
 			const {playersSpeaking} = this.state
 
 			const index = playersSpeaking.indexOf(playerIndex)
@@ -318,19 +344,19 @@ export default class GameView extends React.Component<GameViewProps, GameViewSta
 			}
 		})
 
-		setGameEventHandler(socket, GameEvent.SetDeliberationTimer, (endTime: number) => {
+		setGameEventHandler(socket, GameEventType.SetDeliberationTimer, (endTime: number) => {
 			this.setCountdownTimer(endTime)
 		})
 
-		setGameEventHandler(socket, GameEvent.SetVoteTimer, (endTime: number) => {
+		setGameEventHandler(socket, GameEventType.SetVoteTimer, (endTime: number) => {
 			this.setCountdownTimer(endTime)
 		})
 
-		setGameEventHandler(socket, GameEvent.ShowVotes, (votes: number[]) => {
+		setGameEventHandler(socket, GameEventType.ShowVotes, (votes: number[]) => {
 			this.setState({votes})
 		})
 
-		setGameEventHandler(socket, GameEvent.ShowOwnCard, (card: Card) => {
+		setGameEventHandler(socket, GameEventType.ShowOwnCard, (card: Card) => {
 			const {gameState, userDetailsList, playerId} = this.state
 			const playerIndex = userDetailsList.findIndex(u => u?.id === playerId)
 
@@ -346,7 +372,7 @@ export default class GameView extends React.Component<GameViewProps, GameViewSta
 			})
 		})
 
-		setGameEventHandler(socket, GameEvent.UpdatePlayers, (userDetailsList: UserDetails[], playerId?: string) => {
+		setGameEventHandler(socket, GameEventType.UpdatePlayers, (userDetailsList: UserDetails[], playerId?: string) => {
 			console.debug('UpdatePlayers', userDetailsList, playerId)
 			this.setState({
 				userDetailsList
@@ -370,32 +396,32 @@ export default class GameView extends React.Component<GameViewProps, GameViewSta
 			}
 		})
 
-		setGameEventHandler(socket, GameEvent.UpdateGameState, (gameState: GameState) => {
+		setGameEventHandler(socket, GameEventType.UpdateGameState, (gameState: GameState) => {
 			console.debug('UpdateGameState', gameState)
 			this.setState({
 				gameState
 			})
 		})
 
-		setGameEventHandler(socket, GameEvent.UpdateCardCount, (card: Card, count: number) => {
+		setGameEventHandler(socket, GameEventType.UpdateCardCount, (card: Card, count: number) => {
 			console.debug('Card update', card, count)
 
 			this.setCardCount(card, count)
 		})
 
-		setGameEventHandler(socket, GameEvent.UpdateAlphaWolfCard, (alphaWolfCard: AlphaWolfCards) => {
+		setGameEventHandler(socket, GameEventType.UpdateAlphaWolfCard, (alphaWolfCard: AlphaWolfCards) => {
 			this.setAlphaWolfCard(alphaWolfCard)
 		})
 
-		setGameEventHandler(socket, GameEvent.UpdateLoneWolf, (loneWolfEnabled: boolean) => {
+		setGameEventHandler(socket, GameEventType.UpdateLoneWolf, (loneWolfEnabled: boolean) => {
 			this.updateLoneWolfEnabled(loneWolfEnabled)
 		})
 
-		setGameEventHandler(socket, GameEvent.ValidationError, (validationResult: ValidationResult) => {
+		setGameEventHandler(socket, GameEventType.ValidationError, (validationResult: ValidationResult) => {
 			console.warn('Validation error:', validationResult.description)
 		})
 
-		setGameEventHandler(socket, GameEvent.PhaseChange, (phase: GamePhase) => {
+		setGameEventHandler(socket, GameEventType.PhaseChange, (phase: GamePhase) => {
 			this.setState({
 				gameState: {
 					...this.state.gameState,
@@ -410,7 +436,7 @@ export default class GameView extends React.Component<GameViewProps, GameViewSta
 			}
 		})
 
-		setGameEventHandler(socket, GameEvent.ShowPlayersOtherRoles, (packet: ShowPlayersOtherRolesPacket) => {
+		setGameEventHandler(socket, GameEventType.ShowPlayersOtherRoles, (packet: ShowPlayersOtherRolesPacket) => {
 			console.debug('Received ShowPlayersOtherRolesPacket', packet)
 
 			const {gameState} = this.state
@@ -428,7 +454,7 @@ export default class GameView extends React.Component<GameViewProps, GameViewSta
 			})
 		})
 
-		setGameEventHandler(socket, GameEvent.AnnounceNightRole, (nightRole: NightRoleOrderType) => {
+		setGameEventHandler(socket, GameEventType.AnnounceNightRole, (nightRole: NightRoleOrderType) => {
 			this.setState({
 				clickablePlayers: [],
 				clickableMiddleCards: [],
@@ -442,7 +468,7 @@ export default class GameView extends React.Component<GameViewProps, GameViewSta
 		})
 
 		// Handle extra steps for a night role
-		setGameEventHandler(socket, GameEvent.NightRoleAction, (playerRole: NightRoleOrderType, stageIndex: number, ...args: any) => {
+		setGameEventHandler(socket, GameEventType.NightRoleAction, (playerRole: NightRoleOrderType, stageIndex: number, ...args: any) => {
 			// End-stage reset - optional
 			if (stageIndex === END_ROLE_ACTION) {
 				this.resetActions()
@@ -459,7 +485,7 @@ export default class GameView extends React.Component<GameViewProps, GameViewSta
 			}
 		})
 
-		setGameEventHandler(socket, GameEvent.StartNightRoleAction, (playerRole: NightRoleOrderType, endTime: number) => {
+		setGameEventHandler(socket, GameEventType.StartNightRoleAction, (playerRole: NightRoleOrderType, endTime: number) => {
 			this.setCountdownTimer(endTime)
 
 			this.setState({
@@ -492,7 +518,7 @@ export default class GameView extends React.Component<GameViewProps, GameViewSta
 			}
 		})
 
-		socket.emit(getGameEventName(GameEvent.PlayerReady))
+		socket.emit(getGameEventName(GameEventType.PlayerReady))
 	}
 
 	private updateLoneWolfEnabled(loneWolfEnabled: boolean) {

@@ -1,6 +1,7 @@
 import { Card } from './Card'
+import { BaseEvent } from './BaseEvent'
 
-export enum GameEvent {
+export enum GameEventType {
 	UpdateGameState,
 	PhaseChange,
 	UpdateCardCount,
@@ -10,6 +11,8 @@ export enum GameEvent {
 	UpdatePlayerSpeakingState,
 	ShowOwnCard,
 	UpdatePlayerHistory,
+	UpdateGameHistory,
+	UpdateTotalHistory,
 	AnnounceNightRole,
 	ShowRoleTimer,
 	PlayerReady,
@@ -25,7 +28,14 @@ export enum GameEvent {
 	ShowVotes,
 }
 
-export const getGameEventName = (gameEvent: GameEvent) => GameEvent[gameEvent]
+export interface BaseGameEvent {
+	type: GameEventType
+	meta?: any
+}
+
+export type GameEvent = BaseGameEvent | BaseEvent
+
+export const getGameEventName = (gameEvent: GameEventType) => GameEventType[gameEvent]
 
 export interface ShowPlayersOtherRolesPacketItem {
 	index: number

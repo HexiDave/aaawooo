@@ -2,7 +2,7 @@ import { DEFAULT_ROLE_DURATION, DEFAULT_ROLE_END_PAUSE, GameServer } from '../Ga
 import { RoleEventGenerator } from '../RoleEventFuncType'
 import {
 	Card,
-	GameEvent,
+	GameEventType,
 	getGameEventName,
 	NightRoleOrderType,
 	ShowPlayersOtherRolesPacket,
@@ -29,7 +29,7 @@ function showPlayerWerewolves(gameServer: GameServer) {
 		// Only show the awake werewolves
 		if (player.startingCard !== Card.DreamWolf) {
 			console.debug('Sending packet to', index, player.userDetails?.displayName)
-			player.socket?.emit(getGameEventName(GameEvent.ShowPlayersOtherRoles), werewolfIdentityPacket)
+			player.socket?.emit(getGameEventName(GameEventType.ShowPlayersOtherRoles), werewolfIdentityPacket)
 		}
 	}
 

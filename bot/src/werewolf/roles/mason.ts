@@ -1,4 +1,4 @@
-import { Card, GameEvent, getGameEventName, NightRoleOrderType, ShowPlayersOtherRolesPacket } from '../../../../common'
+import { Card, GameEventType, getGameEventName, NightRoleOrderType, ShowPlayersOtherRolesPacket } from '../../../../common'
 import { DEFAULT_ROLE_DURATION, DEFAULT_ROLE_END_PAUSE, GameServer } from '../GameServer'
 import { RoleEventGenerator } from '../RoleEventFuncType'
 
@@ -11,7 +11,7 @@ function setupMasons(gameServer: GameServer) {
 	}))
 
 	console.debug('Mason sending other player roles', identPacket)
-	masons.forEach(player => player.player.socket?.emit(getGameEventName(GameEvent.ShowPlayersOtherRoles), identPacket))
+	masons.forEach(player => player.player.socket?.emit(getGameEventName(GameEventType.ShowPlayersOtherRoles), identPacket))
 
 	return DEFAULT_ROLE_DURATION
 }

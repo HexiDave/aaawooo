@@ -3,12 +3,15 @@ import path from 'path'
 import cloneDeep from 'lodash/cloneDeep'
 import {
 	AlphaWolfCards,
+	BaseGameEvent,
 	BasePlayer,
+	BasePlayerEvent,
 	buildDeckFromCardCountState,
 	Card,
 	DefaultGameState,
 	END_ROLE_ACTION,
 	GameEvent,
+	GameEventType,
 	GamePhase,
 	GameState,
 	getGameEventName,
@@ -17,7 +20,6 @@ import {
 	NightRoleOrderType,
 	NightRoleOrderTypeOrNull,
 	OptionalCard,
-	PlayerEvent,
 	PlayerEventType,
 	prepareDeckForGame,
 	Timer,
@@ -87,7 +89,7 @@ function* dayGenerator(gameServer: GameServer): RoleEventGenerator {
 
 function* deliberationGenerator(gameServer: GameServer): RoleEventGenerator {
 	const endTime = new Date(Date.now() + DELIBERATION_TIMER)
-	gameServer.sendGameEvent(GameEvent.SetDeliberationTimer, endTime.getTime())
+	gameServer.sendGameEvent(GameEventType.SetDeliberationTimer, endTime.getTime())
 
 	yield DELIBERATION_TIMER
 
@@ -102,7 +104,7 @@ function* voteGenerator(gameServer: GameServer): RoleEventGenerator {
 	gameServer.resetVotes()
 
 	const endTime = new Date(Date.now() + VOTE_TIMER)
-	gameServer.sendGameEvent(GameEvent.SetVoteTimer, endTime.getTime())
+	gameServer.sendGameEvent(GameEventType.SetVoteTimer, endTime.getTime())
 
 	yield VOTE_TIMER
 
@@ -144,6 +146,8 @@ export class GameServer {
 
 	private votes: number[]
 
+	private gameHistory: GameEvent[]
+
 	public get isStarted() {
 		return this.gameState.phase > GamePhase.Setup
 	}
@@ -157,6 +161,7 @@ export class GameServer {
 		this.gameState = cloneDeep(DefaultGameState)
 		this.roomId = roomId
 		this.players = []
+		this.gameHistory = []
 		this.server = server.in(this.roomId)
 		this.voiceConnection = voiceConnection
 		this.redis = redis
@@ -192,7 +197,8 @@ export class GameServer {
 
 		return {
 			players,
-			gameState: this.gameState
+			gameState: this.gameState,
+			gameHistory: this.gameHistory
 		}
 	}
 
@@ -214,21 +220,35 @@ export class GameServer {
 			.on('reconnecting', () => console.log('Attempting to re-connect voice'))
 	}
 
-	public sendGameEvent(gameEvent: GameEvent, ...args: any[]) {
+	public sendGameEvent(gameEvent: GameEventType, ...args: any[]) {
 		this.server.emit(getGameEventName(gameEvent), ...args)
 	}
 
-	private static socketEmit(socket: Socket | null, gameEvent: GameEvent, ...args: any[]) {
+	private static socketEmit(socket: Socket | null, gameEvent: GameEventType, ...args: any[]) {
 		socket?.emit(getGameEventName(gameEvent), ...args)
 	}
 
-	private static playerEmit(player: Player, gameEvent: GameEvent, ...args: any[]) {
+	private static playerEmit(player: Player, gameEvent: GameEventType, ...args: any[]) {
 		GameServer.socketEmit(player.socket, gameEvent, ...args)
 	}
 
-	private static addEventToPlayerHistory(player: Player, event: PlayerEvent) {
-		player.history.push(event)
-		GameServer.playerEmit(player, GameEvent.UpdatePlayerHistory, player.history)
+	private static addEventToPlayerHistory(player: Player, event: BasePlayerEvent) {
+		const timestamp = (new Date()).getTime()
+		player.history.push({
+			...event,
+			timestamp
+		})
+		GameServer.playerEmit(player, GameEventType.UpdatePlayerHistory, player.history)
+	}
+
+	private addGameEvent(event: BaseGameEvent) {
+		const timestamp = (new Date()).getTime()
+
+		this.gameHistory.push({
+			...event,
+			timestamp
+		})
+		this.sendGameEvent(GameEventType.UpdateGameHistory, this.gameHistory)
 	}
 
 	private static clearPlayer(player: Player) {
@@ -265,7 +285,7 @@ export class GameServer {
 		if (playerIndex === -1)
 			return
 
-		this.sendGameEvent(GameEvent.UpdatePlayerSpeakingState, playerIndex, isSpeaking)
+		this.sendGameEvent(GameEventType.UpdatePlayerSpeakingState, playerIndex, isSpeaking)
 	}
 
 	private setupPlayerSocket(player: Player) {
@@ -276,33 +296,33 @@ export class GameServer {
 
 		socket.join(this.roomId)
 
-		socket.on(getGameEventName(GameEvent.PlayerReady), () => {
-			GameServer.socketEmit(socket, GameEvent.UpdatePlayers, this.getUserDetails(), player.userDetails.id)
+		socket.on(getGameEventName(GameEventType.PlayerReady), () => {
+			GameServer.socketEmit(socket, GameEventType.UpdatePlayers, this.getUserDetails(), player.userDetails.id)
 			this.sendGameStateToSocket(socket)
 		})
 
-		socket.on(getGameEventName(GameEvent.UpdateCardCount), (card: Card, count: number) => {
+		socket.on(getGameEventName(GameEventType.UpdateCardCount), (card: Card, count: number) => {
 			this.updateCardCount(card, count)
 		})
 
-		socket.on(getGameEventName(GameEvent.UpdateAlphaWolfCard), (alphaWolfCard: AlphaWolfCards) => {
+		socket.on(getGameEventName(GameEventType.UpdateAlphaWolfCard), (alphaWolfCard: AlphaWolfCards) => {
 			this.updateAlphaWolfCard(alphaWolfCard)
 		})
 
-		socket.on(getGameEventName(GameEvent.UpdateLoneWolf), (loneWolfEnabled: boolean) => {
+		socket.on(getGameEventName(GameEventType.UpdateLoneWolf), (loneWolfEnabled: boolean) => {
 			this.gameState.loneWolfEnabled = loneWolfEnabled
-			this.sendGameEvent(GameEvent.UpdateLoneWolf, loneWolfEnabled)
+			this.sendGameEvent(GameEventType.UpdateLoneWolf, loneWolfEnabled)
 		})
 
-		socket.on(getGameEventName(GameEvent.RequestStart), () => {
+		socket.on(getGameEventName(GameEventType.RequestStart), () => {
 			this.startGame()
 		})
 
-		socket.on(getGameEventName(GameEvent.RequestDestroy), () => {
+		socket.on(getGameEventName(GameEventType.RequestDestroy), () => {
 			this.gameServerManager.destroyGameServer(this)
 		})
 
-		socket.on(getGameEventName(GameEvent.NightRoleAction), (role: NightRoleOrderType, ...args: any) => {
+		socket.on(getGameEventName(GameEventType.NightRoleAction), (role: NightRoleOrderType, ...args: any) => {
 			if (player.roleState === 0)
 				return
 
@@ -315,7 +335,7 @@ export class GameServer {
 			console.debug('Action complete for role', role)
 		})
 
-		socket.on(getGameEventName(GameEvent.CastVote), (voteIndex: number) => {
+		socket.on(getGameEventName(GameEventType.CastVote), (voteIndex: number) => {
 			if (voteIndex < 0 || voteIndex >= this.votes.length)
 				return
 
@@ -328,13 +348,13 @@ export class GameServer {
 	}
 
 	public showVotes() {
-		this.sendGameEvent(GameEvent.ShowVotes, this.votes)
+		this.sendGameEvent(GameEventType.ShowVotes, this.votes)
 	}
 
 	public showPlayerOwnCards() {
 		// Show player their card
 		for (let player of this.players) {
-			GameServer.playerEmit(player, GameEvent.ShowOwnCard, player.startingCard)
+			GameServer.playerEmit(player, GameEventType.ShowOwnCard, player.startingCard)
 		}
 	}
 
@@ -363,13 +383,21 @@ export class GameServer {
 
 	public updateGamePhase(phase: GamePhase) {
 		this.gameState.phase = phase
-		this.sendGameEvent(GameEvent.PhaseChange, phase)
+		this.sendGameEvent(GameEventType.PhaseChange, phase)
+		this.addGameEvent({
+			type: GameEventType.PhaseChange,
+			meta: phase
+		})
 		this.storeGameServerState()
 	}
 
 	private updateNightRole(role: NightRoleOrderType) {
 		this.gameState.nightRole = role
-		this.sendGameEvent(GameEvent.AnnounceNightRole, role)
+		this.sendGameEvent(GameEventType.AnnounceNightRole, role)
+		this.addGameEvent({
+			type: GameEventType.AnnounceNightRole,
+			meta: role
+		})
 
 		// TODO: Find role and play it
 		const genFunc = this.roleGenerators.get(role)
@@ -406,13 +434,13 @@ export class GameServer {
 	}
 
 	public sendGameStateToAll(deck?: Card[]) {
-		this.sendGameEvent(GameEvent.UpdateGameState, this.buildPublicGameState(deck))
+		this.sendGameEvent(GameEventType.UpdateGameState, this.buildPublicGameState(deck))
 	}
 
 	public sendGameStateToSocket(socket: Socket, deck?: Card[]) {
 		// Hide the deck state by default
 		const gameState = this.buildPublicGameState(deck)
-		GameServer.socketEmit(socket, GameEvent.UpdateGameState, gameState)
+		GameServer.socketEmit(socket, GameEventType.UpdateGameState, gameState)
 	}
 
 	public initializePlayers(userDetailsList: UserDetails[]) {
@@ -451,6 +479,8 @@ export class GameServer {
 		localGameState.nightRole = nightRole
 		localGameState.deck = deck
 		localGameState.cardCountState = cardCountState
+
+		this.gameHistory = gameServerState.gameHistory
 
 		if (this.isStarted) {
 			this.activateNextSequence(nightRole)
@@ -504,6 +534,12 @@ export class GameServer {
 		this.sendGameStateToSocket(socket)
 
 		this.sendPlayerStateToAll()
+
+		// Combine both history events
+		GameServer.playerEmit(player, GameEventType.UpdateTotalHistory, {
+			playerHistory: player.history,
+			gameHistory: this.gameHistory
+		})
 	}
 
 	private getUserDetails() {
@@ -511,7 +547,7 @@ export class GameServer {
 	}
 
 	private sendPlayerStateToAll() {
-		this.sendGameEvent(GameEvent.UpdatePlayers, this.getUserDetails())
+		this.sendGameEvent(GameEventType.UpdatePlayers, this.getUserDetails())
 	}
 
 	private storeGameServerState() {
@@ -540,7 +576,7 @@ export class GameServer {
 		const validationResult = isDeckValid(this.gameState, this.players.length)
 
 		if (validationResult !== null) {
-			this.sendGameEvent(GameEvent.ValidationError, validationResult)
+			this.sendGameEvent(GameEventType.ValidationError, validationResult)
 			return
 		}
 
@@ -588,7 +624,7 @@ export class GameServer {
 
 		// Send if different
 		if (originalCount !== updatedCount) {
-			this.sendGameEvent(GameEvent.UpdateCardCount, card, count)
+			this.sendGameEvent(GameEventType.UpdateCardCount, card, count)
 			this.storeGameServerState()
 		}
 	}
@@ -602,7 +638,7 @@ export class GameServer {
 
 		// Send if different
 		if (originalAlphaWolfCard !== alphaWolfCard) {
-			this.sendGameEvent(GameEvent.UpdateAlphaWolfCard, alphaWolfCard)
+			this.sendGameEvent(GameEventType.UpdateAlphaWolfCard, alphaWolfCard)
 			this.storeGameServerState()
 		}
 	}
@@ -677,18 +713,18 @@ export class GameServer {
 	}
 
 	public sendEndRoleActionToAll(role: NightRoleOrderType) {
-		this.sendGameEvent(GameEvent.NightRoleAction, role, END_ROLE_ACTION)
+		this.sendGameEvent(GameEventType.NightRoleAction, role, END_ROLE_ACTION)
 
 		return DEFAULT_ROLE_RESET_PAUSE
 	}
 
-	public sendNightRoleAction(player: Player, role: NightRoleOrderType, stageIndex: number = END_ROLE_ACTION, ...args: any) {
-		player.socket?.emit(getGameEventName(GameEvent.NightRoleAction), role, stageIndex, ...args)
-	}
-
 	public sendStartNightRoleAction(player: Player, role: NightRoleOrderType, duration: number = DEFAULT_ROLE_DURATION) {
 		const endTime = new Date(Date.now() + duration)
-		player.socket?.emit(getGameEventName(GameEvent.StartNightRoleAction), role, endTime.getTime())
+		player.socket?.emit(getGameEventName(GameEventType.StartNightRoleAction), role, endTime.getTime())
+		GameServer.addEventToPlayerHistory(player, {
+			type: PlayerEventType.StartedNightRole,
+			cardOrCards: role
+		})
 	}
 
 	public pause() {

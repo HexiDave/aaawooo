@@ -1,5 +1,5 @@
 import {
-	Card, GameEvent,
+	Card, GameEventType,
 	getGameEventName,
 	NightRoleOrderType,
 	ShowPlayersOtherRolesPacket,
@@ -23,7 +23,7 @@ function minionSetup(gameServer: GameServer) {
 	for (let minionPlayer of minionPlayers) {
 		const {player} = minionPlayer
 
-		player.socket?.emit(getGameEventName(GameEvent.ShowPlayersOtherRoles), werewolfIdentityPacket)
+		player.socket?.emit(getGameEventName(GameEventType.ShowPlayersOtherRoles), werewolfIdentityPacket)
 	}
 
 	return DEFAULT_ROLE_DURATION

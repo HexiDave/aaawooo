@@ -1,4 +1,4 @@
-import { Card, GameEvent, getGameEventName, NightRoleOrderType, ShowPlayersOtherRolesPacket } from '../../../../common'
+import { Card, GameEventType, getGameEventName, NightRoleOrderType, ShowPlayersOtherRolesPacket } from '../../../../common'
 import { DEFAULT_ROLE_DURATION, DEFAULT_ROLE_END_PAUSE, GameServer } from '../GameServer'
 import { RoleEventGenerator } from '../RoleEventFuncType'
 
@@ -8,7 +8,7 @@ function setupInsomniac(gameServer: GameServer) {
 	for (let insomniac of insomniacs) {
 		const {player, index} = insomniac
 
-		player.socket?.emit(getGameEventName(GameEvent.ShowOwnCard), gameServer.getPlayerCard(index))
+		player.socket?.emit(getGameEventName(GameEventType.ShowOwnCard), gameServer.getPlayerCard(index))
 	}
 
 	return DEFAULT_ROLE_DURATION
