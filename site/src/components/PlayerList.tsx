@@ -1,12 +1,12 @@
 import React, { useMemo } from 'react'
-import { OptionalCard, UserDetails } from '../../../common'
+import { OptionalCard } from '../../../common'
 import clsx from 'clsx'
 import classes from './PlayerList.module.scss'
-import PlayerItem, { PlayerDisplayDetails } from './PlayerItem'
+import PlayerItem, { BasePlayerDisplayDetails, PlayerDisplayDetails } from './PlayerItem'
 import { ClickableState } from './CardView'
 
 interface PlayerListProps {
-	userDetailsList: (UserDetails | null)[]
+	playerDisplayDetails: BasePlayerDisplayDetails[]
 	clickableUsers: number[]
 	isShowingClickable: boolean
 	areCardsVisible: boolean
@@ -17,7 +17,7 @@ interface PlayerListProps {
 }
 
 export default function PlayerList({
-	userDetailsList,
+	playerDisplayDetails,
 	clickableUsers,
 	isShowingClickable,
 	areCardsVisible,
@@ -27,13 +27,11 @@ export default function PlayerList({
 	onCardClick
 }: PlayerListProps) {
 	const players = useMemo(
-		() => userDetailsList.map<PlayerDisplayDetails>((userDetails, index) => ({
-			displayName: userDetails?.displayName ?? `Player ${index + 1}`,
-			avatarUrl: userDetails?.avatarURL ?? `https://cdn.discordapp.com/embed/avatars/${index % 5}.png`,
-			displayHexColor: userDetails?.displayHexColor ?? '#fff',
+		() => playerDisplayDetails.map<PlayerDisplayDetails>((playerDetails, index) => ({
+			...playerDetails,
 			isSpeaking: playersSpeaking.includes(index)
 		})),
-		[userDetailsList, playersSpeaking])
+		[playerDisplayDetails, playersSpeaking])
 
 	return (
 		<div
@@ -42,7 +40,7 @@ export default function PlayerList({
 			})}
 		>
 			<ul className={classes.list}>
-				{userDetailsList.map((userDetails, index) => {
+				{playerDisplayDetails.map((_, index) => {
 					const clickableState = isShowingClickable
 						? clickableUsers.includes(index)
 							? ClickableState.Clickable

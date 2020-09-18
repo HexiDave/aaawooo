@@ -1,10 +1,10 @@
 import React from 'react'
 import {
 	AlphaWolfCards,
+	BaseHistoryEvent,
 	Card,
 	DefaultGameState,
 	END_ROLE_ACTION,
-	GameEvent,
 	GameEventType,
 	GamePhase,
 	GameState,
@@ -12,7 +12,6 @@ import {
 	getGameEventName,
 	NightRoleOrderType,
 	NightRoleOrderTypeOrNull,
-	PlayerEvent,
 	ShowPlayersOtherRolesPacket,
 	UserDetails,
 	ValidationResult
@@ -29,6 +28,7 @@ import Dialog from './Dialog'
 import { GamePhaseNames } from '../gamePhaseNames'
 import { CardNames } from '../cardNames'
 import RolloverTransition from './RolloverTransition'
+import { BasePlayerDisplayDetails, buildBasePlayerDisplayDetails } from './PlayerItem'
 
 interface GameViewProps {
 	socket: SocketIOClient.Socket | null
@@ -37,6 +37,7 @@ interface GameViewProps {
 
 interface GameViewState {
 	userDetailsList: UserDetails[]
+	playerDisplayDetailsList: BasePlayerDisplayDetails[]
 	playerId: string
 	gameState: GameState
 	clickablePlayers: number[]
@@ -46,14 +47,14 @@ interface GameViewState {
 	votes: number[],
 	isGameDestroyDialogShown: boolean
 	playersSpeaking: number[]
-	playerHistory: PlayerEvent[]
-	gameHistory: GameEvent[]
+	history: BaseHistoryEvent[]
 }
 
 const DEFAULT_GAME_VIEW_STATE: GameViewState = {
 	gameState: cloneDeep(DefaultGameState),
 	playerId: '',
 	userDetailsList: [],
+	playerDisplayDetailsList: [],
 	clickablePlayers: [],
 	clickableMiddleCards: [],
 	playerRole: null,
@@ -61,8 +62,7 @@ const DEFAULT_GAME_VIEW_STATE: GameViewState = {
 	votes: [],
 	isGameDestroyDialogShown: false,
 	playersSpeaking: [],
-	playerHistory: [],
-	gameHistory: [],
+	history: []
 }
 
 export default class GameView extends React.Component<GameViewProps, GameViewState> {
@@ -304,20 +304,19 @@ export default class GameView extends React.Component<GameViewProps, GameViewSta
 	}
 
 	private setupSocket(socket: SocketIOClient.Socket) {
-		setGameEventHandler(socket, GameEventType.UpdatePlayerHistory, (playerHistory: PlayerEvent[]) => {
-			console.debug('Player history', playerHistory)
-			this.setState({playerHistory})
+		setGameEventHandler(socket, GameEventType.AddHistoryEvent, (event: BaseHistoryEvent) => {
+			console.debug('Added history event', event)
+			this.setState({
+				history: [
+					...this.state.history,
+					event
+				]
+			})
 		})
 
-		setGameEventHandler(socket, GameEventType.UpdateGameHistory, (gameHistory: GameEvent[]) => {
-			console.debug('Game history', gameHistory)
-			this.setState({gameHistory})
-		})
-
-		setGameEventHandler(socket, GameEventType.UpdateTotalHistory, ({gameHistory, playerHistory}: {gameHistory: GameEvent[], playerHistory: PlayerEvent[]}) => {
-			console.debug('Game history', gameHistory)
-			console.debug('Player history', playerHistory)
-			this.setState({gameHistory, playerHistory})
+		setGameEventHandler(socket, GameEventType.SendHistory, (history: BaseHistoryEvent[]) => {
+			console.debug('Sent full history')
+			this.setState({history})
 		})
 
 		setGameEventHandler(socket, GameEventType.UpdatePlayerSpeakingState, (playerIndex: number, isSpeaking: boolean) => {
@@ -468,7 +467,7 @@ export default class GameView extends React.Component<GameViewProps, GameViewSta
 		})
 
 		// Handle extra steps for a night role
-		setGameEventHandler(socket, GameEventType.NightRoleAction, (playerRole: NightRoleOrderType, stageIndex: number, ...args: any) => {
+		setGameEventHandler(socket, GameEventType.NightRoleAction, (playerRole: NightRoleOrderType, stageIndex: number) => {
 			// End-stage reset - optional
 			if (stageIndex === END_ROLE_ACTION) {
 				this.resetActions()
@@ -568,6 +567,12 @@ export default class GameView extends React.Component<GameViewProps, GameViewSta
 				this.clearCountdownAnimation()
 			}
 		}
+
+		if (this.state.userDetailsList !== prevState.userDetailsList) {
+			const playerDisplayDetailsList = this.state.userDetailsList.map<BasePlayerDisplayDetails>(buildBasePlayerDisplayDetails)
+
+			this.setState({playerDisplayDetailsList})
+		}
 	}
 
 	componentWillUnmount() {
@@ -580,13 +585,15 @@ export default class GameView extends React.Component<GameViewProps, GameViewSta
 
 	render() {
 		const {
+			playerDisplayDetailsList,
 			userDetailsList,
 			gameState,
 			clickablePlayers,
 			clickableMiddleCards,
 			votes,
 			playersSpeaking,
-			isGameDestroyDialogShown
+			isGameDestroyDialogShown,
+			history
 		} = this.state
 
 		return (
@@ -633,7 +640,13 @@ export default class GameView extends React.Component<GameViewProps, GameViewSta
 						<div className={classes.phase}>
 							<RolloverTransition>
 								{(gameState.phase === GamePhase.Night && gameState.nightRole !== null) ? (
-									<span key={gameState.nightRole}>{GamePhaseNames[gameState.phase]}: {CardNames[gameState.nightRole]}</span>
+									<span key={gameState.nightRole}>
+										{GamePhaseNames[gameState.phase]}:
+										{' '}
+										<span className={classes.role}>
+											{CardNames[gameState.nightRole]}
+										</span>
+									</span>
 								) : (
 									<span key={gameState.phase}>{GamePhaseNames[gameState.phase]}</span>
 								)}
@@ -663,11 +676,13 @@ export default class GameView extends React.Component<GameViewProps, GameViewSta
 						isShown={gameState.phase > GamePhase.Setup}
 						gameState={gameState}
 						clickableCards={clickableMiddleCards}
+						history={history}
+						playerDisplayDetailsList={playerDisplayDetailsList}
 						onCardClick={this.handleMiddleCardClick}
 					/>
 
 					<PlayerList
-						userDetailsList={userDetailsList}
+						playerDisplayDetails={playerDisplayDetailsList}
 						clickableUsers={clickablePlayers}
 						isShowingClickable={clickablePlayers.length > 0}
 						areCardsVisible={gameState.phase > GamePhase.Setup}

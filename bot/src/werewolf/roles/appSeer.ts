@@ -1,4 +1,4 @@
-import { Card, NightRoleOrderType } from '../../../../common'
+import { Card, HistoryEventType, LookedAtCardsMeta, NightRoleOrderType, PlayerEventType } from '../../../../common'
 import { DEFAULT_ROLE_DURATION, DEFAULT_ROLE_END_PAUSE, GameServer } from '../GameServer'
 import { RoleEventGenerator } from '../RoleEventFuncType'
 import Player from '../Player'
@@ -37,5 +37,11 @@ export function appSeerRoleAction(player: Player, gameServer: GameServer, deckIn
 
 	const sendDeck = deck.map((card, index) => index === deckIndex ? card : null)
 	console.debug('AppSeer sending deck [player, deck]', player.userDetails?.displayName, sendDeck)
+
+	gameServer.addPlayerHistoryEvent<LookedAtCardsMeta>(HistoryEventType.LookedAtCards, player, {
+		cards: [deck[deckIndex]],
+		deckIndices: [deckIndex]
+	})
+
 	gameServer.sendGameStateToSocket(player.socket, sendDeck)
 }

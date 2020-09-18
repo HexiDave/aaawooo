@@ -1,13 +1,24 @@
 import React from 'react'
-import { Card } from '../../../common'
+import { Card, UserDetails } from '../../../common'
 import clsx from 'clsx'
 import classes from './PlayerItem.module.scss'
 import CardView, { ClickableState } from './CardView'
 
-export interface PlayerDisplayDetails {
+export interface BasePlayerDisplayDetails {
+	index: number
 	displayName: string
 	displayHexColor: string
 	avatarUrl: string
+}
+
+export const buildBasePlayerDisplayDetails = (userDetails: UserDetails | null, index: number) => ({
+	index,
+	displayName: userDetails?.displayName ?? `Player ${index + 1}`,
+	avatarUrl: userDetails?.avatarURL ?? `https://cdn.discordapp.com/embed/avatars/${index % 5}.png`,
+	displayHexColor: userDetails?.displayHexColor ?? '#fff',
+})
+
+export interface PlayerDisplayDetails extends BasePlayerDisplayDetails {
 	isSpeaking: boolean
 }
 

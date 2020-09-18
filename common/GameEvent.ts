@@ -10,9 +10,8 @@ export enum GameEventType {
 	UpdatePlayers,
 	UpdatePlayerSpeakingState,
 	ShowOwnCard,
-	UpdatePlayerHistory,
-	UpdateGameHistory,
-	UpdateTotalHistory,
+	SendHistory,
+	AddHistoryEvent,
 	AnnounceNightRole,
 	ShowRoleTimer,
 	PlayerReady,
@@ -33,7 +32,7 @@ export interface BaseGameEvent {
 	meta?: any
 }
 
-export type GameEvent = BaseGameEvent | BaseEvent
+export type GameEvent = BaseGameEvent & BaseEvent
 
 export const getGameEventName = (gameEvent: GameEventType) => GameEventType[gameEvent]
 

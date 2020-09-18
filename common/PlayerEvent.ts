@@ -4,20 +4,21 @@ import { BaseEvent } from './BaseEvent'
 
 export enum PlayerEventType {
 	StartedWithCard,
-	StartedNightRole
+	StartedNightRole,
+	LookedAtCards,
 }
 
 export interface BasePlayerEvent {
 	type: PlayerEventType
 
 	// What cards were involved? Card type.
-	cardOrCards?: Card | Card[]
+	cards?: Card[]
 
-	// What other players were involved? Seat index.
-	playerOrPlayers?: number | number[]
+	// What other player or cards were involved? Deck index.
+	deckIndices?: number[]
 
 	// What users were involved?
-	userOrUsers?: UserDetails | UserDetails[]
+	users?: UserDetails[]
 }
 
 export type PlayerEvent = BasePlayerEvent & BaseEvent

@@ -18,7 +18,7 @@
   }
 
   .phase {
-    color: #ea42ea;
+    color: $phaseColor;
     font-weight: bold;
     font-size: 1.4em;
     position: absolute;
@@ -27,9 +27,13 @@
     transform: translateX(-50%);
   }
 
+  .role {
+    color: $roleColor;
+  }
+
   .clock {
     margin: 8px 16px;
-    color: darkorange;
+    color: $importantColor;
     font-weight: bold;
     font-size: 1.1em;
   }
@@ -41,7 +45,7 @@
     bottom: -3px;
     height: 3px;
     transform: scaleX(1);
-    background: darkorange;
+    background: $importantColor;
     z-index: 9999;
     opacity: 0;
 

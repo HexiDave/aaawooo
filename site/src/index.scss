@@ -9,6 +9,7 @@ html, body {
 * {
   box-sizing: border-box;
 
+  //noinspection CssUnknownProperty
   scrollbar-color: $scrollbarThumb $scrollbarTrack;
 
   &::-webkit-scrollbar {
@@ -21,7 +22,7 @@ html, body {
     &-thumb {
       background-color: $scrollbarThumb;
       &:hover {
-        background-color: lighten($scrollbarThumb, 20%);
+        background-color: lighten($scrollbarThumb, 10%);
       }
     }
 
@@ -29,10 +30,10 @@ html, body {
       display: block;
       height: 24px;
       background-color: $scrollbarThumb;
-      border: 2px solid lighten($scrollbarTrack, 20%);
+      border: 1px solid lighten($scrollbarTrack, 20%);
 
       &:hover {
-        background-color: lighten($scrollbarThumb, 20%);
+        background-color: lighten($scrollbarThumb, 10%);
       }
 
       &:vertical {

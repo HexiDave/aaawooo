@@ -1,9 +1,11 @@
 type TimerCallback = () => void
 
+type TimerIdType = ReturnType<typeof setTimeout>
+
 export class Timer {
-	private startTime: number
-	private remainingTime: number
-	private timerId: number
+	private startTime: number = 0
+	private remainingTime: number = 0
+	private timerId: TimerIdType = 0 as unknown as TimerIdType
 	private readonly callback: TimerCallback
 
 	constructor(callback: TimerCallback) {

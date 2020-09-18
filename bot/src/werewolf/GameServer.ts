@@ -3,25 +3,29 @@ import path from 'path'
 import cloneDeep from 'lodash/cloneDeep'
 import {
 	AlphaWolfCards,
-	BaseGameEvent,
+	BaseHistoryEvent,
 	BasePlayer,
-	BasePlayerEvent,
 	buildDeckFromCardCountState,
 	Card,
 	DefaultGameState,
 	END_ROLE_ACTION,
-	GameEvent,
 	GameEventType,
+	GameHistoryEvent,
 	GamePhase,
 	GameState,
 	getGameEventName,
 	getNextNightRole,
+	HistoryEventType,
 	isDeckValid,
 	NightRoleOrderType,
 	NightRoleOrderTypeOrNull,
 	OptionalCard,
 	PlayerEventType,
+	PlayerHistoryEvent,
+	PlayerHistoryEventMeta,
 	prepareDeckForGame,
+	StartedNightRoleMeta,
+	StartedWithCardMeta,
 	Timer,
 	updateAlphaWolfCard,
 	updateCardCount,
@@ -146,7 +150,7 @@ export class GameServer {
 
 	private votes: number[]
 
-	private gameHistory: GameEvent[]
+	private history: BaseHistoryEvent[]
 
 	public get isStarted() {
 		return this.gameState.phase > GamePhase.Setup
@@ -161,7 +165,7 @@ export class GameServer {
 		this.gameState = cloneDeep(DefaultGameState)
 		this.roomId = roomId
 		this.players = []
-		this.gameHistory = []
+		this.history = []
 		this.server = server.in(this.roomId)
 		this.voiceConnection = voiceConnection
 		this.redis = redis
@@ -198,7 +202,7 @@ export class GameServer {
 		return {
 			players,
 			gameState: this.gameState,
-			gameHistory: this.gameHistory
+			history: this.history
 		}
 	}
 
@@ -232,23 +236,36 @@ export class GameServer {
 		GameServer.socketEmit(player.socket, gameEvent, ...args)
 	}
 
-	private static addEventToPlayerHistory(player: Player, event: BasePlayerEvent) {
-		const timestamp = (new Date()).getTime()
-		player.history.push({
-			...event,
-			timestamp
-		})
-		GameServer.playerEmit(player, GameEventType.UpdatePlayerHistory, player.history)
+	public addGameHistoryEvent(type: HistoryEventType, meta?: any) {
+		if (type > HistoryEventType.LAST_GAME_EVENT_TYPE)
+			throw new Error('Not a game event type')
+
+		const event: GameHistoryEvent = {
+			type,
+			timestamp: (new Date()).getTime(),
+			meta
+		}
+
+		this.history.push(event)
+		this.sendGameEvent(GameEventType.AddHistoryEvent, event)
 	}
 
-	private addGameEvent(event: BaseGameEvent) {
-		const timestamp = (new Date()).getTime()
+	public addPlayerHistoryEvent<Meta extends PlayerHistoryEventMeta>(type: HistoryEventType, player: Player, meta: Meta) {
+		if (type < HistoryEventType.LAST_GAME_EVENT_TYPE)
+			throw new Error('Not a player event type')
 
-		this.gameHistory.push({
-			...event,
-			timestamp
-		})
-		this.sendGameEvent(GameEventType.UpdateGameHistory, this.gameHistory)
+		const playerIndex = this.getIndexByPlayer(player)
+
+		const event: PlayerHistoryEvent = {
+			type,
+			timestamp: (new Date()).getTime(),
+			meta,
+			playerIndex,
+			userDetails: player.userDetails
+		}
+
+		this.history.push(event)
+		GameServer.playerEmit(player, GameEventType.AddHistoryEvent, event)
 	}
 
 	private static clearPlayer(player: Player) {
@@ -384,20 +401,14 @@ export class GameServer {
 	public updateGamePhase(phase: GamePhase) {
 		this.gameState.phase = phase
 		this.sendGameEvent(GameEventType.PhaseChange, phase)
-		this.addGameEvent({
-			type: GameEventType.PhaseChange,
-			meta: phase
-		})
+		this.addGameHistoryEvent(HistoryEventType.PhaseChange, phase)
 		this.storeGameServerState()
 	}
 
 	private updateNightRole(role: NightRoleOrderType) {
 		this.gameState.nightRole = role
 		this.sendGameEvent(GameEventType.AnnounceNightRole, role)
-		this.addGameEvent({
-			type: GameEventType.AnnounceNightRole,
-			meta: role
-		})
+		this.addGameHistoryEvent(HistoryEventType.NightRoleChange, role)
 
 		// TODO: Find role and play it
 		const genFunc = this.roleGenerators.get(role)
@@ -480,7 +491,7 @@ export class GameServer {
 		localGameState.deck = deck
 		localGameState.cardCountState = cardCountState
 
-		this.gameHistory = gameServerState.gameHistory
+		this.history = gameServerState.history
 
 		if (this.isStarted) {
 			this.activateNextSequence(nightRole)
@@ -494,21 +505,21 @@ export class GameServer {
 	public joinPlayer(socket: Socket, userDetails: UserDetails, requestedPosition?: number) {
 		// TODO: Check for disallowing player replacements
 
-		let seatIndex = this.players.findIndex(p => p.userDetails?.id === userDetails.id)
+		let playerIndex = this.players.findIndex(p => p.userDetails?.id === userDetails.id)
 
 		// Allow replacement if a player leaves
-		if (seatIndex === -1 &&
+		if (playerIndex === -1 &&
 			requestedPosition !== undefined &&
 			this.players.length > requestedPosition &&
 			requestedPosition >= 0 &&
 			this.players[requestedPosition].userDetails?.id === null) {
-			seatIndex = requestedPosition
+			playerIndex = requestedPosition
 		}
 
 		let player: Player
 
-		if (seatIndex !== -1) {
-			player = this.players[seatIndex]
+		if (playerIndex !== -1) {
+			player = this.players[playerIndex]
 
 			GameServer.clearPlayer(player)
 			player.socket = socket
@@ -523,6 +534,8 @@ export class GameServer {
 				roleCardsState: []
 			}
 
+			playerIndex = this.players.length
+
 			this.players = [
 				...this.players,
 				player
@@ -536,10 +549,14 @@ export class GameServer {
 		this.sendPlayerStateToAll()
 
 		// Combine both history events
-		GameServer.playerEmit(player, GameEventType.UpdateTotalHistory, {
-			playerHistory: player.history,
-			gameHistory: this.gameHistory
-		})
+		this.sendHistoryToPlayer(player, playerIndex)
+	}
+
+	public sendHistoryToPlayer(player: Player, playerIndex: number) {
+		const eventsVisibleToPlayer = this.history
+			.filter(event => event.type < HistoryEventType.LAST_GAME_EVENT_TYPE || (event as PlayerHistoryEvent).playerIndex === playerIndex)
+
+		GameServer.playerEmit(player, GameEventType.SendHistory, eventsVisibleToPlayer)
 	}
 
 	private getUserDetails() {
@@ -601,11 +618,9 @@ export class GameServer {
 			const player = this.players[index]
 
 			player.startingCard = this.gameState.deck[index]
-			GameServer.addEventToPlayerHistory(player, {
-				type: PlayerEventType.StartedWithCard,
-				cardOrCards: player.startingCard,
-				userOrUsers: player.userDetails,
-				playerOrPlayers: index
+
+			this.addPlayerHistoryEvent<StartedWithCardMeta>(HistoryEventType.StartedWithCard, player, {
+				card: player.startingCard
 			})
 		}
 
@@ -721,9 +736,9 @@ export class GameServer {
 	public sendStartNightRoleAction(player: Player, role: NightRoleOrderType, duration: number = DEFAULT_ROLE_DURATION) {
 		const endTime = new Date(Date.now() + duration)
 		player.socket?.emit(getGameEventName(GameEventType.StartNightRoleAction), role, endTime.getTime())
-		GameServer.addEventToPlayerHistory(player, {
-			type: PlayerEventType.StartedNightRole,
-			cardOrCards: role
+
+		this.addPlayerHistoryEvent<StartedNightRoleMeta>(HistoryEventType.StartedNightRole, player, {
+			role
 		})
 	}
 
