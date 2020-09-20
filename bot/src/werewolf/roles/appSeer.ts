@@ -1,4 +1,4 @@
-import { Card, HistoryEventType, LookedAtCardsMeta, NightRoleOrderType, PlayerEventType } from '../../../../common'
+import { Card, HistoryEventType, LookedAtCardsMeta, NightRoleOrderType } from '../../../../common'
 import { DEFAULT_ROLE_DURATION, DEFAULT_ROLE_END_PAUSE, GameServer } from '../GameServer'
 import { RoleEventGenerator } from '../RoleEventFuncType'
 import Player from '../Player'

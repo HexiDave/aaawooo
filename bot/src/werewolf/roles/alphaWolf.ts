@@ -1,4 +1,4 @@
-import { Card, NightRoleOrderType, WerewolfCardArray } from '../../../../common'
+import { Card, HistoryEventType, NightRoleOrderType, SwappedCardsMeta, WerewolfCardArray } from '../../../../common'
 import { DEFAULT_ROLE_DURATION, DEFAULT_ROLE_END_PAUSE, GameServer } from '../GameServer'
 import { RoleEventGenerator } from '../RoleEventFuncType'
 import Player from '../Player'
@@ -56,4 +56,8 @@ export function alphaWolfRoleAction(player: Player, gameServer: GameServer, othe
 
 	deck[otherPlayerIndex] = deck[alphaWolfCardIndex]
 	deck[alphaWolfCardIndex] = playerCard
+
+	gameServer.addPlayerHistoryEvent<SwappedCardsMeta>(HistoryEventType.SwappedCards, player, {
+		deckIndices: [otherPlayerIndex, alphaWolfCardIndex]
+	})
 }

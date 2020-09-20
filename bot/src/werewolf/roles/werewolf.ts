@@ -4,7 +4,10 @@ import {
 	Card,
 	GameEventType,
 	getGameEventName,
+	HistoryEventType,
+	LookedAtCardsMeta,
 	NightRoleOrderType,
+	PlayersWokeUpTogetherMeta,
 	ShowPlayersOtherRolesPacket,
 	WerewolfCardArray
 } from '../../../../common'
@@ -21,6 +24,14 @@ function showPlayerWerewolves(gameServer: GameServer) {
 		index: p.index
 	}))
 
+	// TODO: Adjust this to show some players as Dream wolves
+	const meta: PlayersWokeUpTogetherMeta = {
+		role: Card.Werewolf,
+		playerIndices: werewolfPlayers.map(w => w.index)
+	}
+
+	const timestamp = (new Date()).getTime()
+
 	console.debug('Ident packet', werewolfIdentityPacket)
 
 	for (let werewolfPlayer of werewolfPlayers) {
@@ -30,6 +41,8 @@ function showPlayerWerewolves(gameServer: GameServer) {
 		if (player.startingCard !== Card.DreamWolf) {
 			console.debug('Sending packet to', index, player.userDetails?.displayName)
 			player.socket?.emit(getGameEventName(GameEventType.ShowPlayersOtherRoles), werewolfIdentityPacket)
+
+			gameServer.addPlayerHistoryEvent<PlayersWokeUpTogetherMeta>(HistoryEventType.PlayersWokeUpTogether, player, meta, timestamp)
 		}
 	}
 
@@ -76,4 +89,9 @@ export function loneWolfRoleAction(player: Player, gameServer: GameServer, deckI
 	const sendDeck = deck.map((card, index) => index === deckIndex ? card : null)
 	console.debug('Lone Wolf sending deck [player, deck]', player.userDetails?.displayName, sendDeck)
 	gameServer.sendGameStateToSocket(player.socket, sendDeck)
+
+	gameServer.addPlayerHistoryEvent<LookedAtCardsMeta>(HistoryEventType.LookedAtCards, player, {
+		cards: [deck[deckIndex]],
+		deckIndices: [deckIndex]
+	})
 }

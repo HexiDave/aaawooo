@@ -1,4 +1,4 @@
-import { Card, NightRoleOrderType } from '../../../../common'
+import { Card, HistoryEventType, LookedAtCardsMeta, NightRoleOrderType } from '../../../../common'
 import { DEFAULT_ROLE_DURATION, DEFAULT_ROLE_END_PAUSE, GameServer } from '../GameServer'
 import { RoleEventGenerator } from '../RoleEventFuncType'
 import Player from '../Player'
@@ -46,4 +46,9 @@ export function mysticWolfRoleAction(player: Player, gameServer: GameServer, oth
 
 	console.debug('Mystic Wolf sending game state', showDeck)
 	gameServer.sendGameStateToSocket(player.socket, showDeck)
+
+	gameServer.addPlayerHistoryEvent<LookedAtCardsMeta>(HistoryEventType.LookedAtCards, player, {
+		cards: [deck[otherPlayerIndex]],
+		deckIndices: [otherPlayerIndex]
+	})
 }

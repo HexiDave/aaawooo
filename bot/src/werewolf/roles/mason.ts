@@ -1,4 +1,12 @@
-import { Card, GameEventType, getGameEventName, NightRoleOrderType, ShowPlayersOtherRolesPacket } from '../../../../common'
+import {
+	Card,
+	GameEventType,
+	getGameEventName,
+	HistoryEventType,
+	NightRoleOrderType,
+	PlayersWokeUpTogetherMeta,
+	ShowPlayersOtherRolesPacket
+} from '../../../../common'
 import { DEFAULT_ROLE_DURATION, DEFAULT_ROLE_END_PAUSE, GameServer } from '../GameServer'
 import { RoleEventGenerator } from '../RoleEventFuncType'
 
@@ -10,8 +18,19 @@ function setupMasons(gameServer: GameServer) {
 		card: Card.Mason
 	}))
 
+	const meta: PlayersWokeUpTogetherMeta = {
+		role: Card.Mason,
+		playerIndices: masons.map(m => m.index)
+	}
+
+	const timestamp = (new Date()).getTime()
+
 	console.debug('Mason sending other player roles', identPacket)
-	masons.forEach(player => player.player.socket?.emit(getGameEventName(GameEventType.ShowPlayersOtherRoles), identPacket))
+	masons.forEach(mason => {
+		mason.player.socket?.emit(getGameEventName(GameEventType.ShowPlayersOtherRoles), identPacket)
+
+		gameServer.addPlayerHistoryEvent<PlayersWokeUpTogetherMeta>(HistoryEventType.PlayersWokeUpTogether, mason.player, meta, timestamp)
+	})
 
 	return DEFAULT_ROLE_DURATION
 }

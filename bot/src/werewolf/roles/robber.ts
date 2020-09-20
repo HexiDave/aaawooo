@@ -1,4 +1,4 @@
-import { Card, NightRoleOrderType } from '../../../../common'
+import { Card, HistoryEventType, LookedAtCardsMeta, NightRoleOrderType, SwappedCardsMeta } from '../../../../common'
 import { DEFAULT_ROLE_DURATION, DEFAULT_ROLE_END_PAUSE, GameServer } from '../GameServer'
 import { RoleEventGenerator } from '../RoleEventFuncType'
 import Player from '../Player'
@@ -47,4 +47,13 @@ export function robberRoleAction(player: Player, gameServer: GameServer, otherPl
 	const sendDeck = deck.map((card, index) => index === playerIndex ? card : null)
 	console.debug('Robber sending deck [player, deck]', player.userDetails?.displayName, sendDeck)
 	gameServer.sendGameStateToSocket(player.socket, sendDeck)
+
+	gameServer.addPlayerHistoryEvent<SwappedCardsMeta>(HistoryEventType.SwappedCards, player, {
+		deckIndices: [playerIndex, otherPlayerIndex]
+	})
+
+	gameServer.addPlayerHistoryEvent<LookedAtCardsMeta>(HistoryEventType.LookedAtCards, player, {
+		cards: [deck[playerIndex]],
+		deckIndices: [playerIndex]
+	})
 }

@@ -1,6 +1,9 @@
 import {
-	Card, GameEventType,
+	Card,
+	GameEventType,
 	getGameEventName,
+	HistoryEventType,
+	LookedAtCardsMeta,
 	NightRoleOrderType,
 	ShowPlayersOtherRolesPacket,
 	WerewolfCardArray
@@ -18,12 +21,18 @@ function minionSetup(gameServer: GameServer) {
 		index: p.index
 	}))
 
+	const meta: LookedAtCardsMeta = {
+		deckIndices: werewolfPlayers.map(p => p.index),
+		cards: werewolfPlayers.map(() => Card.Werewolf)
+	}
+
 	console.debug('Minion sending other player roles', werewolfIdentityPacket)
 
 	for (let minionPlayer of minionPlayers) {
 		const {player} = minionPlayer
 
 		player.socket?.emit(getGameEventName(GameEventType.ShowPlayersOtherRoles), werewolfIdentityPacket)
+		gameServer.addPlayerHistoryEvent<LookedAtCardsMeta>(HistoryEventType.LookedAtCards, player, meta)
 	}
 
 	return DEFAULT_ROLE_DURATION

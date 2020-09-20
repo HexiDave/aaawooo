@@ -250,7 +250,7 @@ export class GameServer {
 		this.sendGameEvent(GameEventType.AddHistoryEvent, event)
 	}
 
-	public addPlayerHistoryEvent<Meta extends PlayerHistoryEventMeta>(type: HistoryEventType, player: Player, meta: Meta) {
+	public addPlayerHistoryEvent<Meta extends PlayerHistoryEventMeta>(type: HistoryEventType, player: Player, meta: Meta, timestamp?: number) {
 		if (type < HistoryEventType.LAST_GAME_EVENT_TYPE)
 			throw new Error('Not a player event type')
 
@@ -258,7 +258,7 @@ export class GameServer {
 
 		const event: PlayerHistoryEvent = {
 			type,
-			timestamp: (new Date()).getTime(),
+			timestamp: timestamp ?? (new Date()).getTime(),
 			meta,
 			playerIndex,
 			userDetails: player.userDetails

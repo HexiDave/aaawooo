@@ -1,4 +1,4 @@
-import { Card, NightRoleOrderType } from '../../../../common'
+import { Card, HistoryEventType, LookedAtCardsMeta, NightRoleOrderType } from '../../../../common'
 import { DEFAULT_ROLE_DURATION, DEFAULT_ROLE_END_PAUSE, GameServer } from '../GameServer'
 import { RoleEventGenerator } from '../RoleEventFuncType'
 import Player from '../Player'
@@ -69,4 +69,9 @@ export function seerRoleAction(player: Player, gameServer: GameServer, deckIndex
 		console.debug('Seer sending deck [player, deck]', player.userDetails?.displayName, sendDeck)
 		gameServer.sendGameStateToSocket(player.socket, sendDeck)
 	}
+
+	gameServer.addPlayerHistoryEvent<LookedAtCardsMeta>(HistoryEventType.LookedAtCards, player, {
+		cards: [deck[deckIndex]],
+		deckIndices: [deckIndex]
+	})
 }

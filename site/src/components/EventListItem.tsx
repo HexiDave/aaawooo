@@ -8,8 +8,10 @@ import {
 	LookedAtCardsMeta,
 	NightRoleOrderType,
 	PlayerHistoryEvent,
+	PlayersWokeUpTogetherMeta,
 	StartedNightRoleMeta,
-	StartedWithCardMeta
+	StartedWithCardMeta,
+	SwappedCardsMeta
 } from '../../../common'
 import classes from './EventListItem.module.scss'
 import { CardNames } from '../cardNames'
@@ -71,17 +73,27 @@ interface PlayerHistoryEventItemProps {
 	playerDisplayDetailsList: BasePlayerDisplayDetails[]
 }
 
-const getDeckIndexText = (deckIndex: number, playerCount: number) => {
+interface DeckItemProps {
+	deckIndex: number
+	playerDisplayDetailsList: BasePlayerDisplayDetails[]
+}
+
+function DeckItem({deckIndex, playerDisplayDetailsList}: DeckItemProps) {
+	const playerCount = playerDisplayDetailsList.length
+
 	if (deckIndex < playerCount) {
-		return `Player ${deckIndex + 1}`
+		const player = playerDisplayDetailsList[deckIndex]
+
+		return <ImportantItem color={player.displayHexColor}>
+			{`${player.displayName}'s`}
+		</ImportantItem>
 	} else {
-		return `Middle card ${deckIndex - playerCount + 1}`
+		return <span>{`Middle card ${deckIndex - playerCount + 1}`}</span>
 	}
 }
 
 function PlayerHistoryEventItem({event, playerDisplayDetailsList}: PlayerHistoryEventItemProps) {
 	const playerDisplayDetails = buildBasePlayerDisplayDetails(event.userDetails, event.playerIndex)
-	const playerCount = playerDisplayDetailsList.length
 	const playerView = (
 		<ImportantItem color={playerDisplayDetails.displayHexColor}>
 			{playerDisplayDetails.displayName}
@@ -119,12 +131,60 @@ function PlayerHistoryEventItem({event, playerDisplayDetailsList}: PlayerHistory
 				<ul>
 					{meta.cards.map((card, index) => (
 						<li key={index}>
-							<span>{getDeckIndexText(meta.deckIndices[index], playerCount)}: </span>
+							<span>
+								<DeckItem
+									deckIndex={meta.deckIndices[index]}
+									playerDisplayDetailsList={playerDisplayDetailsList}
+								/>
+								{': '}
+							</span>
 							<ImportantItem className={classes.roleColor}>
 								{CardNames[card]}
 							</ImportantItem>
 						</li>
 					))}
+				</ul>
+			</Fragment>
+		}
+		case HistoryEventType.SwappedCards: {
+			const meta = event.meta as SwappedCardsMeta
+
+			return <Fragment>
+				{playerView}
+				<span> swapped these cards: </span>
+				<ul>
+					{meta.deckIndices.map((deckIndex, index) => (
+						<li key={index}>
+							<DeckItem
+								deckIndex={deckIndex}
+								playerDisplayDetailsList={playerDisplayDetailsList}
+							/>
+						</li>
+					))}
+				</ul>
+			</Fragment>
+		}
+		case HistoryEventType.PlayersWokeUpTogether: {
+			const meta = event.meta as PlayersWokeUpTogetherMeta
+
+			return <Fragment>
+				<span>Woke up together for </span>
+				<ImportantItem className={classes.roleColor}>
+					{CardNames[meta.role]}
+				</ImportantItem>
+				{':'}
+				<ul>
+					{meta.playerIndices.map(playerIndex => {
+						const player = playerDisplayDetailsList[playerIndex]
+
+						return (
+							<li key={playerIndex}>
+								<ImportantItem color={player.displayHexColor}>
+									{player.displayName}
+								</ImportantItem>
+							</li>
+						)
+					})}
 				</ul>
 			</Fragment>
 		}

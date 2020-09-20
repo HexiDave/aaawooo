@@ -1,4 +1,4 @@
-import { Card, NightRoleOrderType } from '../../../../common'
+import { Card, HistoryEventType, NightRoleOrderType, SwappedCardsMeta } from '../../../../common'
 import { DEFAULT_ROLE_DURATION, DEFAULT_ROLE_END_PAUSE, GameServer } from '../GameServer'
 import { RoleEventGenerator } from '../RoleEventFuncType'
 import Player from '../Player'
@@ -38,4 +38,8 @@ export function drunkRoleAction(player: Player, gameServer: GameServer, deckInde
 	const playerCard = deck[playerIndex]
 	deck[playerIndex] = deck[deckIndex]
 	deck[deckIndex] = playerCard
+
+	gameServer.addPlayerHistoryEvent<SwappedCardsMeta>(HistoryEventType.SwappedCards, player, {
+		deckIndices: [playerIndex, deckIndex]
+	})
 }

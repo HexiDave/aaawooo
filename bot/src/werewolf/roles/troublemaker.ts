@@ -1,4 +1,4 @@
-import { Card, NightRoleOrderType } from '../../../../common'
+import { Card, HistoryEventType, NightRoleOrderType, SwappedCardsMeta } from '../../../../common'
 import { DEFAULT_ROLE_DURATION, DEFAULT_ROLE_END_PAUSE, GameServer } from '../GameServer'
 import { RoleEventGenerator } from '../RoleEventFuncType'
 import Player from '../Player'
@@ -39,4 +39,8 @@ export function troublemakerRoleAction(player: Player, gameServer: GameServer, o
 	const otherPlayer1Card = deck[otherPlayer1Index]
 	deck[otherPlayer1Index] = deck[otherPlayer2Index]
 	deck[otherPlayer2Index] = otherPlayer1Card
+
+	gameServer.addPlayerHistoryEvent<SwappedCardsMeta>(HistoryEventType.SwappedCards, player, {
+		deckIndices: [otherPlayer1Index, otherPlayer2Index]
+	})
 }
