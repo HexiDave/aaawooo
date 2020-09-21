@@ -1,4 +1,4 @@
-import { AlphaWolfCardArray, AlphaWolfCards, Card, CardArray } from './Card'
+import { AlphaWolfCardArray, AlphaWolfCards, Card, CardArray, WerewolfCardArray } from './Card'
 import { getCardLimit } from './CardCountLimit'
 import { shuffleCards } from './utils'
 
@@ -32,6 +32,8 @@ export enum CardBound {
 	Correct = 0,
 	High = 1
 }
+
+const MAX_SHUFFLE_ATTEMPTS = 10
 
 /**
  * Checks if the the number of cards for a specific role is valid.
@@ -111,8 +113,25 @@ export function getDeckSizeFromCardCountState(state: CardCountState): number {
 	return baseDeck.length + (state.alphaWolfCard === 'none' ? 0 : 1)
 }
 
+function areAllPlayersWerewolves(deck: Card[]) {
+	for (let i = 0; i < deck.length - 3; i++) {
+		if (WerewolfCardArray.indexOf(deck[i]) === -1)
+			return false
+	}
+
+	return true
+}
+
 export function prepareDeckForGame(state: CardCountState, deck: Card[]): Card[] {
-	const shuffledDeck = shuffleCards(deck)
+	let shuffledDeck: Card[]
+
+	for (let i = 0; i < MAX_SHUFFLE_ATTEMPTS; i++) {
+		shuffledDeck = shuffleCards(deck)
+
+		// We don't want a round where all players are werewolves - waste of a round
+		if (!areAllPlayersWerewolves(shuffledDeck))
+			break
+	}
 
 	if (state.alphaWolf > 0 && state.alphaWolfCard !== 'none') {
 		return [

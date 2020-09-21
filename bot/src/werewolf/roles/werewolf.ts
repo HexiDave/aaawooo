@@ -48,7 +48,7 @@ function showPlayerWerewolves(gameServer: GameServer) {
 
 	const {loneWolfEnabled} = gameServer.gameState
 
-	if (loneWolfEnabled && werewolfPlayers.length === 1) {
+	if (loneWolfEnabled && werewolfPlayers.length === 1 && werewolfPlayers[0].player.startingCard !== Card.DreamWolf) {
 		const {player} = werewolfPlayers[0]
 		player.roleState = 1
 
@@ -59,9 +59,15 @@ function showPlayerWerewolves(gameServer: GameServer) {
 }
 
 export function* werewolfRole(role: NightRoleOrderType, gameServer: GameServer): RoleEventGenerator {
-	yield gameServer.playRoleWakeUp(role)
+	const {loneWolfEnabled, cardCountState} = gameServer.gameState
 
-	const {loneWolfEnabled} = gameServer.gameState
+	const hasDreamWolf = cardCountState.dreamWolf !== 0
+
+	if (hasDreamWolf) {
+		yield gameServer.playRoleWakeUp('werewolf_dreamwolf')
+	} else {
+		yield gameServer.playRoleWakeUp(role)
+	}
 
 	if (loneWolfEnabled) {
 		// Take a breath...
@@ -73,6 +79,9 @@ export function* werewolfRole(role: NightRoleOrderType, gameServer: GameServer):
 	yield showPlayerWerewolves(gameServer)
 	yield gameServer.sendEndRoleActionToAll(role)
 
+	if (hasDreamWolf) {
+		yield gameServer.playTrack(GameServer.buildRoleTrackName('werewolf_dreamwolf', 'thumb'))
+	}
 	yield gameServer.playRoleCloseEyes(role)
 
 	return yield DEFAULT_ROLE_END_PAUSE
