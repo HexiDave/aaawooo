@@ -13,6 +13,7 @@ export enum HistoryEventType {
 	LookedAtCards,
 	SwappedCards,
 	PlayersWokeUpTogether,
+	VillageIdiotHappened,
 }
 
 export interface BaseHistoryEvent {
@@ -54,12 +55,17 @@ export interface PlayersWokeUpTogetherMeta {
 	role: NightRoleOrderType
 }
 
+export interface VillageIdiotHappenedMeta {
+	shiftedLeft: boolean
+}
+
 export type PlayerHistoryEventMeta =
 	StartedWithCardMeta |
 	StartedNightRoleMeta |
 	LookedAtCardsMeta |
 	SwappedCardsMeta |
-	PlayersWokeUpTogetherMeta
+	PlayersWokeUpTogetherMeta |
+	VillageIdiotHappenedMeta
 
 export interface PlayerHistoryEvent extends BaseHistoryEvent {
 	playerIndex: number

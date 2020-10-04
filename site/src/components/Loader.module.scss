@@ -12,6 +12,7 @@
   opacity: 1;
   transition: opacity 200ms;
   flex-direction: column;
+  pointer-events: none;
 
   h1 {
     color: white;
@@ -62,6 +63,6 @@
     transform: rotate(-90deg);
   }
   100% {
-    transform: rotate(360deg * 3);
+    transform: rotate(360deg * 5);
   }
 }

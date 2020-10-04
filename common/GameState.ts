@@ -18,6 +18,7 @@ export interface GameState {
 	phase: GamePhase
 	loneWolfEnabled: boolean
 	nightRole: NightRoleOrderTypeOrNull
+	deliberationMinutes: number
 }
 
 export const DefaultGameState: GameState = {
@@ -25,5 +26,6 @@ export const DefaultGameState: GameState = {
 	deck: [] as OptionalCard[],
 	phase: GamePhase.None,
 	loneWolfEnabled: true,
-	nightRole: null
+	nightRole: null,
+	deliberationMinutes: 5
 } as const

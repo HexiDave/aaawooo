@@ -1,6 +1,6 @@
 import React, { Fragment } from 'react'
 import {
-	BaseHistoryEvent,
+	BaseHistoryEvent, Card,
 	GameHistoryEvent,
 	GamePhase,
 	HistoryEventType,
@@ -11,7 +11,7 @@ import {
 	PlayersWokeUpTogetherMeta,
 	StartedNightRoleMeta,
 	StartedWithCardMeta,
-	SwappedCardsMeta
+	SwappedCardsMeta, VillageIdiotHappenedMeta
 } from '../../../common'
 import classes from './EventListItem.module.scss'
 import { CardNames } from '../cardNames'
@@ -186,6 +186,19 @@ function PlayerHistoryEventItem({event, playerDisplayDetailsList}: PlayerHistory
 						)
 					})}
 				</ul>
+			</Fragment>
+		}
+		case HistoryEventType.VillageIdiotHappened: {
+			const meta = event.meta as VillageIdiotHappenedMeta
+
+			return <Fragment>
+				<ImportantItem className={classes.roleColor}>
+					{CardNames[Card.VillageIdiot]}
+				</ImportantItem>
+				<span> shifted the cards to the </span>
+				<ImportantItem className={classes.vIdiotShiftColor}>
+					{meta.shiftedLeft ? 'Left' : 'Right'}
+				</ImportantItem>
 			</Fragment>
 		}
 		default:

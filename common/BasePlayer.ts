@@ -5,5 +5,4 @@ import { PlayerEvent } from './PlayerEvent'
 export interface BasePlayer {
 	userDetails: UserDetails | null
 	startingCard: Card | null
-	history: PlayerEvent[]
 }

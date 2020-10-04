@@ -7,6 +7,7 @@ export enum GameEventType {
 	UpdateCardCount,
 	UpdateAlphaWolfCard,
 	UpdateLoneWolf,
+	UpdateDeliberationTimer,
 	UpdatePlayers,
 	UpdatePlayerSpeakingState,
 	ShowOwnCard,

@@ -142,7 +142,7 @@ export default class DiscordBot {
 
 		gameServer = this.gameServerManager.createGameServer(channel.id, connection)
 
-		if (debugStartingCard) {
+		if (process.env.NODE_ENV === 'development' && debugStartingCard) {
 			gameServer.__DEBUG_START_CARD = CardArray.find(c => c.toLowerCase() === debugStartingCard.toLowerCase())
 		}
 

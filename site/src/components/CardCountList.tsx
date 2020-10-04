@@ -6,7 +6,7 @@ import {
 	CardArray,
 	CardCountState,
 	getCardLimit,
-	getCardSteps,
+	getCardSteps, MAX_DELIBERATION_MINUTES, MIN_DELIBERATION_MINUTES,
 	Timer
 } from '../../../common'
 import CardCountView from './CardCountView'
@@ -26,9 +26,11 @@ interface CardCountListProps extends BaseTransitionProps {
 	playerCount: number
 	cardCountState: CardCountState
 	isLoneWolfEnabled: boolean
+	deliberationMinutes: number
 	onUpdateCardCount: (card: Card, count: number) => void
 	onUpdateAlphaWolfCardChange: (card: AlphaWolfCards) => void
 	onUpdateLoneWolfEnabled: (loneWolfEnabled: boolean) => void
+	onUpdateDeliberationMinutes: (minutes: number) => void
 }
 
 export default function CardCountList({
@@ -36,9 +38,11 @@ export default function CardCountList({
 	cardCountState,
 	isLoneWolfEnabled,
 	isShown,
+	deliberationMinutes,
 	onUpdateCardCount,
 	onUpdateAlphaWolfCardChange,
-	onUpdateLoneWolfEnabled
+	onUpdateLoneWolfEnabled,
+	onUpdateDeliberationMinutes
 }: CardCountListProps) {
 	const timerRef = useRef<Timer>()
 	const cardCountRef = useRef<CardCount>()
@@ -118,6 +122,15 @@ export default function CardCountList({
 		updateCardCount(card, nextCount)
 	}
 
+	const handleDeliberationMinutesClick = (modifier: number) => () => {
+		const nextValue = deliberationMinutes + modifier
+
+		if (nextValue < MIN_DELIBERATION_MINUTES || nextValue > MAX_DELIBERATION_MINUTES)
+			return
+
+		onUpdateDeliberationMinutes(nextValue)
+	}
+
 	// Update the current counts if from a higher-order
 	useEffect(() => {
 		setCardCounts(cardCountState)
@@ -136,7 +149,6 @@ export default function CardCountList({
 		<SimpleTransition isShown={isShown} className={classes.root}>
 			<div className={classes.details}>
 				<div>Players: {playerCount}</div>
-				<div>Required cards: {requiredCardCount}</div>
 				<div>
 					Deck size:
 					{' '}
@@ -149,6 +161,7 @@ export default function CardCountList({
 					>
 						{mainDeckSize}
 					</span>
+					<span> / {requiredCardCount}</span>
 				</div>
 				<div>
 					Alpha wolf card
@@ -169,6 +182,18 @@ export default function CardCountList({
 						onClick={() => onUpdateLoneWolfEnabled(!isLoneWolfEnabled)}
 					>
 						{isLoneWolfEnabled ? 'Yes' : 'No'}
+					</button>
+				</div>
+				<div>
+					<abbr title='Deliberation time in minutes'>Time:</abbr>
+					<button onClick={handleDeliberationMinutesClick(-1)}>
+						-
+					</button>
+					<span className={classes.deliberationMinutes}>
+						{deliberationMinutes}
+					</span>
+					<button onClick={handleDeliberationMinutesClick(1)}>
+						+
 					</button>
 				</div>
 			</div>

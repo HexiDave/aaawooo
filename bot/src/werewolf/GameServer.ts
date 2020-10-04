@@ -17,10 +17,11 @@ import {
 	getNextNightRole,
 	HistoryEventType,
 	isDeckValid,
+	MAX_DELIBERATION_MINUTES,
+	MIN_DELIBERATION_MINUTES,
 	NightRoleOrderType,
 	NightRoleOrderTypeOrNull,
 	OptionalCard,
-	PlayerEventType,
 	PlayerHistoryEvent,
 	PlayerHistoryEventMeta,
 	prepareDeckForGame,
@@ -49,12 +50,13 @@ import { insomniacRole } from './roles/insomniac'
 import { robberRole, robberRoleAction } from './roles/robber'
 import { troublemakerRole, troublemakerRoleAction } from './roles/troublemaker'
 import { IGameServerManager } from '../IGameServerManager'
+import { witchRole, witchRoleAction } from './roles/witch'
+import { vIdiotRole, vIdiotRoleAction } from './roles/vIdiot'
 
 export const DEFAULT_FALLBACK_DELAY = 30_000
 export const DEFAULT_ROLE_DURATION = 5_000
 export const DEFAULT_ROLE_RESET_PAUSE = 500
 export const DEFAULT_ROLE_END_PAUSE = 2_000
-export const DELIBERATION_TIMER = 5 /** 60*/ * 1_000
 export const VOTE_TIMER = 15_000
 
 type RoleActionFunction = (player: Player, gameServer: GameServer, ...args: any) => void
@@ -92,10 +94,12 @@ function* dayGenerator(gameServer: GameServer): RoleEventGenerator {
 }
 
 function* deliberationGenerator(gameServer: GameServer): RoleEventGenerator {
-	const endTime = new Date(Date.now() + DELIBERATION_TIMER)
+	const deliberationTime = gameServer.gameState.deliberationMinutes * 60 * 1000
+
+	const endTime = new Date(Date.now() + deliberationTime)
 	gameServer.sendGameEvent(GameEventType.SetDeliberationTimer, endTime.getTime())
 
-	yield DELIBERATION_TIMER
+	yield deliberationTime
 
 	yield gameServer.playTrack(GameServer.buildRoleTrackName('everyone', 'timeisup_321vote'))
 
@@ -186,6 +190,8 @@ export class GameServer {
 		this.addRole(Card.Seer, seerRole, seerRoleAction)
 		this.addRole(Card.Troublemaker, troublemakerRole, troublemakerRoleAction)
 		this.addRole(Card.Werewolf, werewolfRole, loneWolfRoleAction)
+		this.addRole(Card.Witch, witchRole, witchRoleAction)
+		this.addRole(Card.VillageIdiot, vIdiotRole, vIdiotRoleAction)
 	}
 
 	public addRole(role: NightRoleOrderType, roleEventGen: RoleEventGeneratorFunc, roleAction?: RoleActionFunction) {
@@ -326,6 +332,16 @@ export class GameServer {
 			this.updateAlphaWolfCard(alphaWolfCard)
 		})
 
+		socket.on(getGameEventName(GameEventType.UpdateDeliberationTimer), (minutes: number) => {
+			const deliberationMinutes = Math.round(minutes)
+
+			if (deliberationMinutes < MIN_DELIBERATION_MINUTES || deliberationMinutes > MAX_DELIBERATION_MINUTES)
+				return
+
+			this.updateDeliberationTimer(deliberationMinutes)
+			this.sendGameEvent(GameEventType.UpdateDeliberationTimer, deliberationMinutes)
+		})
+
 		socket.on(getGameEventName(GameEventType.UpdateLoneWolf), (loneWolfEnabled: boolean) => {
 			this.gameState.loneWolfEnabled = loneWolfEnabled
 			this.sendGameEvent(GameEventType.UpdateLoneWolf, loneWolfEnabled)
@@ -462,7 +478,6 @@ export class GameServer {
 		this.players = userDetailsList.map(userDetails => ({
 			socket: null,
 			startingCard: null,
-			history: [],
 			userDetails: userDetails,
 			roleCardsState: [],
 			roleState: 0
@@ -474,7 +489,7 @@ export class GameServer {
 	public initializeWithGameServerState(gameServerState: GameServerState) {
 		this.removeAllPlayers()
 
-		const {gameState: {cardCountState, deck, loneWolfEnabled, nightRole, phase}, players} = gameServerState
+		const {gameState: {cardCountState, deck, loneWolfEnabled, nightRole, phase, deliberationMinutes}, players} = gameServerState
 
 		this.players = players.map(basePlayer => ({
 			socket: null,
@@ -490,6 +505,7 @@ export class GameServer {
 		localGameState.nightRole = nightRole
 		localGameState.deck = deck
 		localGameState.cardCountState = cardCountState
+		localGameState.deliberationMinutes = deliberationMinutes
 
 		this.history = gameServerState.history
 
@@ -527,7 +543,6 @@ export class GameServer {
 		} else {
 			player = {
 				socket,
-				history: [],
 				startingCard: null,
 				userDetails: userDetails,
 				roleState: 0,
@@ -573,6 +588,10 @@ export class GameServer {
 			.catch(console.error)
 	}
 
+	private updateDeliberationTimer(minutes: number) {
+		this.gameState.deliberationMinutes = minutes
+	}
+
 	public startSetup() {
 		if (this.gameState.phase !== GamePhase.None)
 			return
@@ -599,15 +618,17 @@ export class GameServer {
 
 		const deck = prepareDeckForGame(this.gameState.cardCountState, baseDeck)
 
-		if (this.__DEBUG_START_CARD) {
-			// Assume player 0 is me
+		if (process.env.NODE_ENV === 'development') {
+			if (this.__DEBUG_START_CARD) {
+				// Assume player 0 is me
 
-			if (deck[0] !== this.__DEBUG_START_CARD) {
-				const otherCardIndex = deck.indexOf(this.__DEBUG_START_CARD)
+				if (deck[0] !== this.__DEBUG_START_CARD) {
+					const otherCardIndex = deck.indexOf(this.__DEBUG_START_CARD)
 
-				const playerCard = deck[0]
-				deck[0] = deck[otherCardIndex]
-				deck[otherCardIndex] = playerCard
+					const playerCard = deck[0]
+					deck[0] = deck[otherCardIndex]
+					deck[otherCardIndex] = playerCard
+				}
 			}
 		}
 

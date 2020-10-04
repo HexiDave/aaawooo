@@ -123,7 +123,7 @@ function areAllPlayersWerewolves(deck: Card[]) {
 }
 
 export function prepareDeckForGame(state: CardCountState, deck: Card[]): Card[] {
-	let shuffledDeck: Card[]
+	let shuffledDeck: Card[] = []
 
 	for (let i = 0; i < MAX_SHUFFLE_ATTEMPTS; i++) {
 		shuffledDeck = shuffleCards(deck)

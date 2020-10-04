@@ -1,1 +1,3 @@
 export const MAX_ROOM_SIZE = 20
+export const MIN_DELIBERATION_MINUTES = 1
+export const MAX_DELIBERATION_MINUTES = 10

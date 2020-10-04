@@ -48,6 +48,7 @@ interface GameViewState {
 	isGameDestroyDialogShown: boolean
 	playersSpeaking: number[]
 	history: BaseHistoryEvent[]
+	isVillageIdiotActionDialogShown: boolean
 }
 
 const DEFAULT_GAME_VIEW_STATE: GameViewState = {
@@ -62,7 +63,8 @@ const DEFAULT_GAME_VIEW_STATE: GameViewState = {
 	votes: [],
 	isGameDestroyDialogShown: false,
 	playersSpeaking: [],
-	history: []
+	history: [],
+	isVillageIdiotActionDialogShown: false
 }
 
 export default class GameView extends React.Component<GameViewProps, GameViewState> {
@@ -285,6 +287,20 @@ export default class GameView extends React.Component<GameViewProps, GameViewSta
 		this.emitGameEvent(GameEventType.UpdateLoneWolf, loneWolfEnabled)
 	}
 
+	private updateDeliberationMinutes = (minutes: number) => {
+		this.setState({
+			gameState: {
+				...this.state.gameState,
+				deliberationMinutes: minutes
+			}
+		})
+	}
+
+	private handleUpdateDeliberationMinutesChange = (minutes: number) => {
+		this.updateDeliberationMinutes(minutes)
+		this.emitGameEvent(GameEventType.UpdateDeliberationTimer, minutes)
+	}
+
 	private handleStartGameClick = () => {
 		this.emitGameEvent(GameEventType.RequestStart)
 	}
@@ -301,6 +317,16 @@ export default class GameView extends React.Component<GameViewProps, GameViewSta
 		this.handleDestroyGameDialogClose()
 
 		this.emitGameEvent(GameEventType.RequestDestroy)
+	}
+
+	private handleVillageIdiotDialogClose = () => this.setState({isVillageIdiotActionDialogShown: false})
+
+	private handleVillageIdiotAction = (shiftLeft?: boolean) => () => {
+		this.handleVillageIdiotDialogClose()
+
+		if (shiftLeft !== undefined) {
+			this.emitGameEvent(GameEventType.NightRoleAction, Card.VillageIdiot, shiftLeft)
+		}
 	}
 
 	private setupSocket(socket: SocketIOClient.Socket) {
@@ -416,6 +442,10 @@ export default class GameView extends React.Component<GameViewProps, GameViewSta
 			this.updateLoneWolfEnabled(loneWolfEnabled)
 		})
 
+		setGameEventHandler(socket, GameEventType.UpdateDeliberationTimer, (minutes: number) => {
+			this.updateDeliberationMinutes(minutes)
+		})
+
 		setGameEventHandler(socket, GameEventType.ValidationError, (validationResult: ValidationResult) => {
 			console.warn('Validation error:', validationResult.description)
 		})
@@ -513,6 +543,9 @@ export default class GameView extends React.Component<GameViewProps, GameViewSta
 					}
 					break
 				case Card.VillageIdiot:
+					this.setState({
+						isVillageIdiotActionDialogShown: true
+					})
 					break
 			}
 		})
@@ -534,7 +567,8 @@ export default class GameView extends React.Component<GameViewProps, GameViewSta
 		this.setState({
 			clickablePlayers: [],
 			clickableMiddleCards: [],
-			cardClickBuffer: []
+			cardClickBuffer: [],
+			isVillageIdiotActionDialogShown: false
 		})
 		this.clearDeck()
 	}
@@ -593,14 +627,15 @@ export default class GameView extends React.Component<GameViewProps, GameViewSta
 			votes,
 			playersSpeaking,
 			isGameDestroyDialogShown,
-			history
+			history,
+			isVillageIdiotActionDialogShown
 		} = this.state
 
 		return (
 			<React.Fragment>
 				<Dialog
 					isOpen={isGameDestroyDialogShown}
-					containerClassName={classes.destroyDialog}
+					containerClassName={classes.actionDialog}
 				>
 					<h2>Destroy game?</h2>
 
@@ -608,13 +643,38 @@ export default class GameView extends React.Component<GameViewProps, GameViewSta
 						Are you sure you want to destroy this game?
 					</p>
 
-					<div className={classes.destroyDialogControls}>
+					<div className={classes.actionDialogControls}>
 						<button onClick={this.handleDestroyGame}>
 							Yes
 						</button>
 
 						<button onClick={this.handleDestroyGameDialogClose}>
 							No
+						</button>
+					</div>
+				</Dialog>
+
+				<Dialog
+					isOpen={isVillageIdiotActionDialogShown}
+					containerClassName={classes.actionDialog}
+				>
+					<h2>Village Idiot</h2>
+
+					<p>
+						Which direction do you want to shift the cards?
+					</p>
+
+					<div className={classes.actionDialogControls}>
+						<button onClick={this.handleVillageIdiotAction(true)}>
+							Left
+						</button>
+
+						<button onClick={this.handleVillageIdiotAction(false)}>
+							Right
+						</button>
+
+						<button onClick={this.handleVillageIdiotAction()}>
+							Skip
 						</button>
 					</div>
 				</Dialog>
@@ -667,9 +727,11 @@ export default class GameView extends React.Component<GameViewProps, GameViewSta
 						cardCountState={gameState.cardCountState}
 						isLoneWolfEnabled={gameState.loneWolfEnabled}
 						isShown={gameState.phase === GamePhase.Setup}
+						deliberationMinutes={gameState.deliberationMinutes}
 						onUpdateCardCount={this.handleCardCountUpdate}
 						onUpdateAlphaWolfCardChange={this.handleAlphaWolfCardChange}
 						onUpdateLoneWolfEnabled={this.handleLoneWolfChange}
+						onUpdateDeliberationMinutes={this.handleUpdateDeliberationMinutesChange}
 					/>
 
 					<ActivityView
