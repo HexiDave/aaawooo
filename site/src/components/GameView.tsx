@@ -334,8 +334,8 @@ export default class GameView extends React.Component<GameViewProps, GameViewSta
 			console.debug('Added history event', event)
 			this.setState({
 				history: [
+					event,
 					...this.state.history,
-					event
 				]
 			})
 		})

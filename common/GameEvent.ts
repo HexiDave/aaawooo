@@ -1,5 +1,4 @@
 import { Card } from './Card'
-import { BaseEvent } from './BaseEvent'
 
 export enum GameEventType {
 	UpdateGameState,
@@ -14,7 +13,6 @@ export enum GameEventType {
 	SendHistory,
 	AddHistoryEvent,
 	AnnounceNightRole,
-	ShowRoleTimer,
 	PlayerReady,
 	RequestStart,
 	RequestDestroy,
@@ -32,8 +30,6 @@ export interface BaseGameEvent {
 	type: GameEventType
 	meta?: any
 }
-
-export type GameEvent = BaseGameEvent & BaseEvent
 
 export const getGameEventName = (gameEvent: GameEventType) => GameEventType[gameEvent]
 

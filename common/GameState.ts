@@ -2,6 +2,8 @@ import { CardCountState, DefaultCardCountState } from './CardCountState'
 import { Card, OptionalCard } from './Card'
 import { NightRoleOrderTypeOrNull } from './Roles'
 
+const DEFAULT_DELIBERATION_MINUTES = 3
+
 export enum GamePhase {
 	None,
 	Setup,
@@ -27,5 +29,5 @@ export const DefaultGameState: GameState = {
 	phase: GamePhase.None,
 	loneWolfEnabled: true,
 	nightRole: null,
-	deliberationMinutes: 5
+	deliberationMinutes: DEFAULT_DELIBERATION_MINUTES
 } as const

@@ -121,6 +121,9 @@ function* voteGenerator(gameServer: GameServer): RoleEventGenerator {
 	gameServer.sendGameStateToAll(gameServer.gameState.deck)
 	gameServer.showVotes()
 	gameServer.updateGamePhase(GamePhase.End)
+	gameServer.sendFullHistory()
+
+	yield gameServer.playTrack('end-round.ogg', 3 * 60 * 1000)
 
 	return yield DEFAULT_ROLE_RESET_PAUSE
 }
@@ -252,7 +255,7 @@ export class GameServer {
 			meta
 		}
 
-		this.history.push(event)
+		this.history.unshift(event)
 		this.sendGameEvent(GameEventType.AddHistoryEvent, event)
 	}
 
@@ -270,7 +273,7 @@ export class GameServer {
 			userDetails: player.userDetails
 		}
 
-		this.history.push(event)
+		this.history.unshift(event)
 		GameServer.playerEmit(player, GameEventType.AddHistoryEvent, event)
 	}
 
@@ -574,6 +577,10 @@ export class GameServer {
 		GameServer.playerEmit(player, GameEventType.SendHistory, eventsVisibleToPlayer)
 	}
 
+	public sendFullHistory() {
+		this.sendGameEvent(GameEventType.SendHistory, this.history)
+	}
+
 	private getUserDetails() {
 		return this.players.map(p => p.userDetails)
 	}
@@ -716,10 +723,6 @@ export class GameServer {
 			throw new Error(`Invalid middle card index: ${middleCardIndex}`)
 
 		return this.players.length + middleCardIndex
-	}
-
-	public getMiddleCard(middleCardIndex: number) {
-		return this.gameState.deck[this.getMiddleCardRealIndex(middleCardIndex)]
 	}
 
 	public getMiddleCardIndex(deckIndex: number) {

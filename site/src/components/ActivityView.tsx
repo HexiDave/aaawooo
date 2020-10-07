@@ -31,12 +31,11 @@ export default function ActivityView({isShown, gameState, clickableCards, histor
 			<div className={classes.playerDetailsContainer}>
 				<div>
 					{history
-						.sort((a, b) => b.timestamp - a.timestamp)
-						.map(event => (
+						.map((event, index) => (
 							<EventListItem
 								event={event}
 								playerDisplayDetailsList={playerDisplayDetailsList}
-								key={event.timestamp}
+								key={index}
 							/>
 						))}
 				</div>
