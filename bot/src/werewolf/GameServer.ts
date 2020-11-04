@@ -54,7 +54,7 @@ import { witchRole, witchRoleAction } from './roles/witch'
 import { vIdiotRole, vIdiotRoleAction } from './roles/vIdiot'
 
 export const DEFAULT_FALLBACK_DELAY = 30_000
-export const DEFAULT_ROLE_DURATION = 5_000
+export const DEFAULT_ROLE_DURATION = 7_500
 export const DEFAULT_ROLE_RESET_PAUSE = 500
 export const DEFAULT_ROLE_END_PAUSE = 2_000
 export const VOTE_TIMER = 15_000
@@ -372,7 +372,7 @@ export class GameServer {
 		})
 
 		socket.on(getGameEventName(GameEventType.CastVote), (voteIndex: number) => {
-			if (voteIndex < 0 || voteIndex >= this.votes.length)
+			if (voteIndex < 0 || !Array.isArray(this.votes) || voteIndex >= this.votes.length)
 				return
 
 			const playerIndex = this.getIndexByPlayer(player)
